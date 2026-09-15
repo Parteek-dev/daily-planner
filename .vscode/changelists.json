@@ -1,0 +1,12 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "frontend/.gitignore",
+        "frontend/.env"
+      ]
+    }
+  ],
+  "active": "Default"
+}
