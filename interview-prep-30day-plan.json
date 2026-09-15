@@ -1,0 +1,918 @@
+{
+  "tasks": [
+    {
+      "id": "plan-d1-1",
+      "title": "Java OOP Concepts - Classes, Objects, Inheritance, Polymorphism",
+      "description": "Review the 4 pillars of OOP with examples. Practice explaining each concept.",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-01",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Encapsulation with getters/setters", "completed": false },
+        { "id": "st2", "title": "Inheritance vs Composition", "completed": false },
+        { "id": "st3", "title": "Method overloading vs overriding", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d1-2",
+      "title": "DSA: Array Problems - Two Sum, Best Time to Buy Stock",
+      "description": "Solve 2 easy array problems on LeetCode. Focus on optimal solutions.",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-01",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d2-1",
+      "title": "Java Collections Framework - List, Set, Map interfaces",
+      "description": "Deep dive into ArrayList vs LinkedList, HashSet vs TreeSet, HashMap internals",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-02",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "ArrayList vs LinkedList time complexity", "completed": false },
+        { "id": "st2", "title": "HashMap internal working (buckets, hashing)", "completed": false },
+        { "id": "st3", "title": "When to use which collection", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d2-2",
+      "title": "DSA: String Problems - Valid Anagram, Reverse String",
+      "description": "Practice string manipulation techniques",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-02",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d3-1",
+      "title": "Java Streams & Lambda Expressions",
+      "description": "Master functional programming in Java - map, filter, reduce, collect",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-03",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Lambda syntax and functional interfaces", "completed": false },
+        { "id": "st2", "title": "Stream operations (intermediate vs terminal)", "completed": false },
+        { "id": "st3", "title": "Collectors and groupingBy", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d3-2",
+      "title": "DSA: LinkedList - Reverse, Detect Cycle, Merge Two Lists",
+      "description": "Practice pointer manipulation in linked lists",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-03",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d4-1",
+      "title": "Java Multithreading Basics - Thread, Runnable, synchronized",
+      "description": "Understand thread creation, synchronization, and thread safety",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-04",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Thread vs Runnable", "completed": false },
+        { "id": "st2", "title": "synchronized keyword and locks", "completed": false },
+        { "id": "st3", "title": "volatile and thread visibility", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d4-2",
+      "title": "DSA: Stack & Queue - Valid Parentheses, Min Stack",
+      "description": "Practice stack-based problems",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-04",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d5-1",
+      "title": "Java Exception Handling & JVM Internals",
+      "description": "Checked vs unchecked exceptions, JVM memory model, class loading",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-05",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Exception hierarchy", "completed": false },
+        { "id": "st2", "title": "try-with-resources", "completed": false },
+        { "id": "st3", "title": "JVM memory areas (heap, stack, metaspace)", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d5-2",
+      "title": "DSA: Binary Tree Basics - Traversals (Inorder, Preorder, Postorder)",
+      "description": "Understand tree traversals recursively and iteratively",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-05",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d6-1",
+      "title": "LeetCode Practice Day - 3 Medium Problems",
+      "description": "Solve 3 medium difficulty problems from different topics",
+      "topic": "DSA",
+      "duration": 90,
+      "date": "2026-09-06",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Problem 1: Array/String", "completed": false },
+        { "id": "st2", "title": "Problem 2: LinkedList/Tree", "completed": false },
+        { "id": "st3", "title": "Problem 3: Stack/Queue", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d7-1",
+      "title": "Week 1 Review - Java & DSA Fundamentals",
+      "description": "Review all concepts from week 1, identify weak areas",
+      "topic": "Java",
+      "duration": 60,
+      "date": "2026-09-07",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Review Java notes", "completed": false },
+        { "id": "st2", "title": "Re-solve difficult problems", "completed": false },
+        { "id": "st3", "title": "List topics needing more practice", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d8-1",
+      "title": "Java Concurrency - ExecutorService, Future, CompletableFuture",
+      "description": "Advanced threading with thread pools and async programming",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-08",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "ThreadPoolExecutor types", "completed": false },
+        { "id": "st2", "title": "Future and Callable", "completed": false },
+        { "id": "st3", "title": "CompletableFuture chaining", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d8-2",
+      "title": "DSA: Binary Search Tree - Insert, Delete, Validate BST",
+      "description": "Master BST operations and properties",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-08",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d9-1",
+      "title": "Java Memory Model & Garbage Collection",
+      "description": "Understand heap generations, GC algorithms, memory leaks",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-09",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Young vs Old generation", "completed": false },
+        { "id": "st2", "title": "G1 GC vs CMS vs ZGC", "completed": false },
+        { "id": "st3", "title": "Common memory leak patterns", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d9-2",
+      "title": "DSA: Graph Basics - Representation, BFS, DFS",
+      "description": "Learn adjacency list/matrix, implement BFS and DFS",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-09",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d10-1",
+      "title": "Kafka Architecture Overview",
+      "description": "Understand brokers, topics, partitions, consumer groups, Zookeeper",
+      "topic": "Kafka",
+      "duration": 45,
+      "date": "2026-09-10",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Kafka cluster architecture", "completed": false },
+        { "id": "st2", "title": "Topics and partitions", "completed": false },
+        { "id": "st3", "title": "Consumer groups and offsets", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d10-2",
+      "title": "DSA: Graph Problems - Number of Islands, Clone Graph",
+      "description": "Apply BFS/DFS to solve graph problems",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-10",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d11-1",
+      "title": "Kafka Producers - Configuration, Partitioning, Serialization",
+      "description": "Deep dive into producer API and best practices",
+      "topic": "Kafka",
+      "duration": 45,
+      "date": "2026-09-11",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Producer configuration (acks, retries)", "completed": false },
+        { "id": "st2", "title": "Custom partitioners", "completed": false },
+        { "id": "st3", "title": "Idempotent producers", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d11-2",
+      "title": "DSA: Dynamic Programming Intro - Fibonacci, Climbing Stairs",
+      "description": "Understand memoization and tabulation approaches",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-11",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d12-1",
+      "title": "Kafka Consumers - Polling, Commits, Rebalancing",
+      "description": "Master consumer API and offset management",
+      "topic": "Kafka",
+      "duration": 45,
+      "date": "2026-09-12",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Auto vs manual commit", "completed": false },
+        { "id": "st2", "title": "Consumer rebalancing strategies", "completed": false },
+        { "id": "st3", "title": "Exactly-once semantics", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d12-2",
+      "title": "DSA: DP Problems - Coin Change, House Robber",
+      "description": "Practice classic DP problems",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-12",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d13-1",
+      "title": "Kafka Replication & Fault Tolerance",
+      "description": "ISR, leader election, min.insync.replicas",
+      "topic": "Kafka",
+      "duration": 45,
+      "date": "2026-09-13",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Replication factor and ISR", "completed": false },
+        { "id": "st2", "title": "Leader election process", "completed": false },
+        { "id": "st3", "title": "Handling broker failures", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d13-2",
+      "title": "DSA: DP Problems - Longest Common Subsequence, Edit Distance",
+      "description": "2D DP problems",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-13",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d14-1",
+      "title": "Kafka Review + LeetCode Practice",
+      "description": "Review Kafka concepts, solve 2 medium problems",
+      "topic": "Kafka",
+      "duration": 90,
+      "date": "2026-09-14",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Review Kafka notes", "completed": false },
+        { "id": "st2", "title": "LeetCode Medium #1", "completed": false },
+        { "id": "st3", "title": "LeetCode Medium #2", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d15-1",
+      "title": "System Design Fundamentals - Scalability, Load Balancing",
+      "description": "Horizontal vs vertical scaling, load balancer types",
+      "topic": "System Design",
+      "duration": 45,
+      "date": "2026-09-15",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Vertical vs horizontal scaling", "completed": false },
+        { "id": "st2", "title": "Load balancing algorithms", "completed": false },
+        { "id": "st3", "title": "CDN basics", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d15-2",
+      "title": "DSA: Heap/Priority Queue - Kth Largest, Merge K Lists",
+      "description": "Heap operations and applications",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-15",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d16-1",
+      "title": "System Design: URL Shortener (TinyURL)",
+      "description": "Design a URL shortening service - hashing, database, caching",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-16",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Requirements gathering", "completed": false },
+        { "id": "st2", "title": "High-level design", "completed": false },
+        { "id": "st3", "title": "Database schema", "completed": false },
+        { "id": "st4", "title": "URL encoding strategies", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d16-2",
+      "title": "DSA: Trie - Implement Trie, Word Search",
+      "description": "Trie data structure and applications",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-16",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d17-1",
+      "title": "System Design: Twitter/News Feed",
+      "description": "Design a social media feed - fan-out, caching, ranking",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-17",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Fan-out on write vs read", "completed": false },
+        { "id": "st2", "title": "Timeline generation", "completed": false },
+        { "id": "st3", "title": "Caching strategies", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d17-2",
+      "title": "DSA: Backtracking - Permutations, Subsets, N-Queens",
+      "description": "Backtracking pattern and problems",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-17",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d18-1",
+      "title": "System Design: WhatsApp/Chat System",
+      "description": "Design real-time messaging - WebSockets, message queues",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-18",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Real-time communication (WebSocket)", "completed": false },
+        { "id": "st2", "title": "Message delivery guarantees", "completed": false },
+        { "id": "st3", "title": "Group chat architecture", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d18-2",
+      "title": "DSA: Sliding Window - Max Sliding Window, Longest Substring",
+      "description": "Sliding window technique",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-18",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d19-1",
+      "title": "System Design: Netflix/YouTube Video Streaming",
+      "description": "Design video streaming - CDN, encoding, adaptive streaming",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-19",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Video encoding and storage", "completed": false },
+        { "id": "st2", "title": "CDN and edge caching", "completed": false },
+        { "id": "st3", "title": "Adaptive bitrate streaming", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d19-2",
+      "title": "DSA: Two Pointers - 3Sum, Container With Most Water",
+      "description": "Two pointer technique",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-19",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d20-1",
+      "title": "Database Design - SQL vs NoSQL, Indexing, Sharding",
+      "description": "Database fundamentals for system design",
+      "topic": "System Design",
+      "duration": 45,
+      "date": "2026-09-20",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "ACID vs BASE", "completed": false },
+        { "id": "st2", "title": "Indexing strategies", "completed": false },
+        { "id": "st3", "title": "Horizontal vs vertical sharding", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d20-2",
+      "title": "LeetCode Practice - 2 Medium/Hard Problems",
+      "description": "Mixed topic practice",
+      "topic": "DSA",
+      "duration": 60,
+      "date": "2026-09-20",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d21-1",
+      "title": "Caching Strategies - Redis, Cache Invalidation",
+      "description": "Caching patterns and Redis data structures",
+      "topic": "System Design",
+      "duration": 45,
+      "date": "2026-09-21",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Cache-aside, write-through, write-back", "completed": false },
+        { "id": "st2", "title": "Redis data structures", "completed": false },
+        { "id": "st3", "title": "Cache invalidation strategies", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d21-2",
+      "title": "DSA Review - Weak Areas Practice",
+      "description": "Focus on topics you found difficult",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-21",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d22-1",
+      "title": "Mock Coding Interview - 2 Problems in 45 mins",
+      "description": "Simulate real interview conditions",
+      "topic": "DSA",
+      "duration": 60,
+      "date": "2026-09-22",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Problem 1 (25 mins)", "completed": false },
+        { "id": "st2", "title": "Problem 2 (20 mins)", "completed": false },
+        { "id": "st3", "title": "Review and optimize", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d22-2",
+      "title": "Behavioral: Prepare STAR Stories",
+      "description": "Prepare 5 stories using STAR method",
+      "topic": "Behavioral",
+      "duration": 45,
+      "date": "2026-09-22",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Challenging project story", "completed": false },
+        { "id": "st2", "title": "Conflict resolution story", "completed": false },
+        { "id": "st3", "title": "Leadership/ownership story", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d23-1",
+      "title": "Mock System Design Interview - 45 mins",
+      "description": "Practice designing a system end-to-end",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-23",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Requirements clarification (5 mins)", "completed": false },
+        { "id": "st2", "title": "High-level design (15 mins)", "completed": false },
+        { "id": "st3", "title": "Deep dive components (20 mins)", "completed": false },
+        { "id": "st4", "title": "Bottlenecks and scaling (5 mins)", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d23-2",
+      "title": "Review All Notes - Java & Kafka",
+      "description": "Quick review of Java and Kafka concepts",
+      "topic": "Java",
+      "duration": 30,
+      "date": "2026-09-23",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d24-1",
+      "title": "Behavioral Interview Prep - Common Questions",
+      "description": "Practice answering: Tell me about yourself, Why this company, etc.",
+      "topic": "Behavioral",
+      "duration": 45,
+      "date": "2026-09-24",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Tell me about yourself (2 min pitch)", "completed": false },
+        { "id": "st2", "title": "Why do you want to work here?", "completed": false },
+        { "id": "st3", "title": "What's your biggest weakness?", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d24-2",
+      "title": "LeetCode Hard Problem Attempt",
+      "description": "Try one hard problem, focus on approach not perfection",
+      "topic": "DSA",
+      "duration": 60,
+      "date": "2026-09-24",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d25-1",
+      "title": "Java Advanced Topics Review",
+      "description": "Review concurrency, streams, memory management",
+      "topic": "Java",
+      "duration": 45,
+      "date": "2026-09-25",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Concurrency utilities review", "completed": false },
+        { "id": "st2", "title": "Stream API common patterns", "completed": false },
+        { "id": "st3", "title": "GC and memory review", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d25-2",
+      "title": "Mock Interview Practice (Code + Explain)",
+      "description": "Solve problem while explaining your thought process aloud",
+      "topic": "DSA",
+      "duration": 45,
+      "date": "2026-09-25",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d26-1",
+      "title": "Kafka Scenario Questions Practice",
+      "description": "Answer common Kafka interview questions",
+      "topic": "Kafka",
+      "duration": 30,
+      "date": "2026-09-26",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "How to handle message ordering?", "completed": false },
+        { "id": "st2", "title": "What if consumer is slow?", "completed": false },
+        { "id": "st3", "title": "How to achieve exactly-once?", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d26-2",
+      "title": "System Design Review - All Designs",
+      "description": "Quick review of all system designs covered",
+      "topic": "System Design",
+      "duration": 60,
+      "date": "2026-09-26",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "URL Shortener key points", "completed": false },
+        { "id": "st2", "title": "Twitter feed key points", "completed": false },
+        { "id": "st3", "title": "Chat system key points", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d27-1",
+      "title": "Full Mock Interview Day - All Rounds",
+      "description": "Simulate complete interview: coding + system design + behavioral",
+      "topic": "DSA",
+      "duration": 120,
+      "date": "2026-09-27",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Coding round (45 mins)", "completed": false },
+        { "id": "st2", "title": "System design (45 mins)", "completed": false },
+        { "id": "st3", "title": "Behavioral (20 mins)", "completed": false },
+        { "id": "st4", "title": "Review and identify gaps", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d28-1",
+      "title": "Light Review - DSA Patterns Cheat Sheet",
+      "description": "Review common patterns: sliding window, two pointers, BFS/DFS",
+      "topic": "DSA",
+      "duration": 30,
+      "date": "2026-09-28",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "low",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d28-2",
+      "title": "Prepare Questions for Interviewer",
+      "description": "Write down thoughtful questions to ask",
+      "topic": "Behavioral",
+      "duration": 20,
+      "date": "2026-09-28",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Team structure questions", "completed": false },
+        { "id": "st2", "title": "Tech stack questions", "completed": false },
+        { "id": "st3", "title": "Growth opportunity questions", "completed": false }
+      ],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d29-1",
+      "title": "Relax & Light Review - Java Quick Reference",
+      "description": "Skim through Java notes, don't stress",
+      "topic": "Java",
+      "duration": 30,
+      "date": "2026-09-29",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "low",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d29-2",
+      "title": "Review STAR Stories One More Time",
+      "description": "Practice telling your stories naturally",
+      "topic": "Behavioral",
+      "duration": 20,
+      "date": "2026-09-29",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [],
+      "priority": "medium",
+      "recurrence": "none"
+    },
+    {
+      "id": "plan-d30-1",
+      "title": "Final Day - Confidence Building",
+      "description": "Light review, stay confident, get good sleep",
+      "topic": "Behavioral",
+      "duration": 30,
+      "date": "2026-09-30",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": "2026-08-31T10:00:00.000Z",
+      "subtasks": [
+        { "id": "st1", "title": "Review your wins this month", "completed": false },
+        { "id": "st2", "title": "Prepare interview logistics", "completed": false },
+        { "id": "st3", "title": "Get good sleep!", "completed": false }
+      ],
+      "priority": "high",
+      "recurrence": "none"
+    }
+  ],
+  "topics": [
+    { "name": "Java", "color": "#f97316" },
+    { "name": "Kafka", "color": "#8b5cf6" },
+    { "name": "System Design", "color": "#3b82f6" },
+    { "name": "DSA", "color": "#22c55e" },
+    { "name": "Behavioral", "color": "#ec4899" }
+  ],
+  "notes": {
+    "2026-09-01": "Day 1: Starting the 30-day interview prep journey! Focus on fundamentals.",
+    "2026-09-07": "Week 1 complete! Review what went well and what needs more practice.",
+    "2026-09-14": "Week 2 complete! Kafka basics done, time for System Design.",
+    "2026-09-21": "Week 3 complete! System Design covered, time for mock interviews.",
+    "2026-09-30": "Final day! You've prepared well. Stay confident and trust your preparation."
+  },
+  "goals": {
+    "dailyTaskTarget": 2
+  }
+}
