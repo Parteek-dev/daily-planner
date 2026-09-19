@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Plus, Clock, Calendar, Tag, ListChecks, Repeat, Trash2, Copy, Flag, Link } from 'lucide-react'
+import { X, Plus, Clock, Calendar, Tag, ListChecks, Repeat, Trash2, Copy, Flag, Link, AlertTriangle } from 'lucide-react'
 
 const PRESET_COLORS = [
   '#3b82f6', '#22c55e', '#f97316', '#a855f7', 
@@ -617,8 +617,9 @@ export default function AddTaskModal({
               flexDirection: 'column',
               gap: 10,
             }}>
-              <p style={{ fontSize: 13, color: '#f97316', fontWeight: 500, margin: 0 }}>
-                ⚠️ A task named <strong>"{title.trim()}"</strong> already exists on this date. Add it anyway?
+              <p style={{ fontSize: 13, color: '#f97316', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={14} color="#f97316" style={{ flexShrink: 0 }} />
+                A task named <strong>"{title.trim()}"</strong> already exists on this date. Add it anyway?
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button

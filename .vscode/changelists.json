@@ -3,8 +3,33 @@
     {
       "name": "Default",
       "files": [
-        "frontend/.gitignore",
-        "frontend/.env"
+        "frontend/src/hooks/useProgress.js",
+        ".vscode/changelists.json",
+        "frontend/src/components/SettingsModal.jsx",
+        "frontend/src/App.jsx",
+        "frontend/src/components/IcsImportPreview.jsx",
+        "frontend/src/pages/Calendar.jsx",
+        "frontend/src/pages/Today.jsx",
+        "frontend/src/components/Heatmap.jsx",
+        "frontend/src/pages/Dashboard.jsx",
+        "frontend/src/components/AboutModal.jsx",
+        "frontend/src/components/LineChart.jsx",
+        "frontend/src/components/GoalSetting.jsx",
+        "frontend/src/pages/AuthPage.jsx",
+        "frontend/src/index.css",
+        "frontend/src/hooks/useTheme.jsx",
+        "frontend/src/pages/LandingPage.jsx",
+        "supabase/feedback.sql",
+        "frontend/src/pages/FeedbackPage.jsx",
+        "frontend/src/components/VoiceInput.jsx",
+        "frontend/src/components/TimeTrackingStats.jsx",
+        "frontend/src/components/AppTour.jsx",
+        "frontend/src/components/DailyNotes.jsx",
+        "frontend/src/pages/Week.jsx",
+        "frontend/src/components/FocusMode.jsx",
+        "frontend/src/components/AddTaskModal.jsx",
+        "frontend/src/components/QuickAdd.jsx",
+        "frontend/src/components/CommandPalette.jsx"
       ]
     }
   ],

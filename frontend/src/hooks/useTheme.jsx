@@ -22,8 +22,10 @@ export const ACCENT_COLORS = [
 export function ThemeProvider({ children }) {
   const [themeMode, setThemeMode] = useState(() => {
     const stored = localStorage.getItem('ip_theme')
-    // legacy stored values 'dark' / 'light' are valid modes; 'auto' is new
-    return stored || 'dark'
+    if (stored) return stored
+    // Default by time of day for first-time visitors: light 6am–6pm, dark otherwise
+    const h = new Date().getHours()
+    return (h >= 6 && h < 18) ? 'light' : 'dark'
   })
 
   const [accentColor, setAccentColor] = useState(() => {

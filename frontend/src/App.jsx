@@ -4,7 +4,7 @@ import {
   LayoutDashboard, CalendarDays, Sun, Flame, Menu, X,
   Moon, Sparkles, Timer, Undo2, Redo2, PanelTop, Mic,
   LogOut, Loader2, PanelLeftClose, PanelLeftOpen, Settings,
-  ChevronsLeft, ChevronsRight, SunMoon, Columns2, Search,
+  ChevronsLeft, ChevronsRight, SunMoon, Columns2, Search, ClipboardList, MessageSquare, UserCircle, Compass,
 } from 'lucide-react'
 
 import Dashboard        from './pages/Dashboard'
@@ -12,11 +12,15 @@ import CalendarPage     from './pages/Calendar'
 import TodayPage        from './pages/Today'
 import WeekPage         from './pages/Week'
 import AuthPage         from './pages/AuthPage'
+import LandingPage      from './pages/LandingPage'
+import FeedbackPage     from './pages/FeedbackPage'
 import SettingsModal    from './components/SettingsModal'
+import AppTour          from './components/AppTour'
 import AddTaskModal     from './components/AddTaskModal'
 import ShortcutsModal   from './components/ShortcutsModal'
 import PomodoroTimer    from './components/PomodoroTimer'
 import WidgetView       from './components/WidgetView'
+import IcsImportPreview from './components/IcsImportPreview'
 import VoiceInput       from './components/VoiceInput'
 import TimerAlert       from './components/TimerAlert'
 import OverdueRolloverModal from './components/OverdueRolloverModal'
@@ -95,7 +99,7 @@ function LoadingScreen({ message = 'Loading…' }) {
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
-function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings, onSearch, mobileOpen, onClose, onSignOut, onHide, isHidden, userEmail, displayName, compact, onToggleCompact }) {
+function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings, onSearch, onFeedback, onTour, mobileOpen, onClose, onSignOut, onHide, isHidden, userEmail, displayName, compact, onToggleCompact, isGuest = false }) {
   const { overallPercent, streakData, todayCompleted, todayTotal, canUndo, canRedo, undo, redo } = progress
   const { theme, themeMode } = useTheme()
 
@@ -139,8 +143,20 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
     <div style={{ position: 'fixed', bottom: 70, left, width: 224, background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: 6, zIndex: 200, boxShadow: '0 -8px 32px rgba(0,0,0,0.25)' }}>
       <div style={{ padding: '8px 12px 10px', borderBottom: '1px solid var(--border-primary)', marginBottom: 4 }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{displayName || 'My Account'}</p>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{userEmail}</p>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{isGuest ? 'Saved locally · not synced' : userEmail}</p>
       </div>
+      <button onClick={() => { setShowUserMenu(false); onFeedback() }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, transition: 'background 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-input)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <MessageSquare size={15} /> Feedback
+      </button>
+      <button onClick={() => { setShowUserMenu(false); onTour() }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, transition: 'background 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-input)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <Compass size={15} /> Take the Tour
+      </button>
       <button onClick={() => { setShowUserMenu(false); onHide() }}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, transition: 'background 0.15s' }}
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-input)'}
@@ -151,7 +167,7 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, transition: 'background 0.15s' }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-        <LogOut size={15} /> Sign Out
+        <LogOut size={15} /> {isGuest ? 'Exit Guest Mode' : 'Sign Out'}
       </button>
     </div>
   )
@@ -161,21 +177,23 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
       {mobileOpen && <div className="mobile-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 35 }} />}
 
       <aside className={`sidebar${mobileOpen ? ' open' : ''}${isHidden ? ' sidebar-hidden' : ''}${compact ? ' sidebar-compact' : ''}`}
-        style={{ overflow: 'hidden' }}>
+        style={{ overflow: 'visible' }}>
 
         {/* ─── HEADER ─── */}
-        {/* Compact emoji — always present, fades in when compact */}
+        {/* Compact logo — always present, fades in when compact */}
         <div style={{
-          padding: '16px 0 12px',
+          padding: '14px 0 16px',
           borderBottom: compact ? '1px solid var(--border-primary)' : 'none',
           display: 'flex', justifyContent: 'center',
           opacity: compact ? 1 : 0,
-          maxHeight: compact ? 54 : 0,
+          maxHeight: compact ? 70 : 0,
           overflow: 'hidden',
           transition: 'opacity 0.25s ease, max-height 0.3s ease',
           pointerEvents: compact ? 'auto' : 'none',
         }}>
-          <span style={{ fontSize: 22 }} title="Daily Planner">📋</span>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }} title="Daily Planner">
+            <ClipboardList size={19} color="#fff" />
+          </div>
         </div>
 
         {/* Full header — collapses to 0 height when compact */}
@@ -192,7 +210,7 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
               <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Daily Planner</h1>
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Track your progress</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }} className="sidebar-header-stats">
               <div style={{ background: 'var(--bg-input)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
                 <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-blue)' }}>{overallPercent}%</p>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Done</p>
@@ -215,7 +233,7 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
         <nav style={{ flex: 1, padding: compact ? '12px 6px' : '12px', transition: 'padding 0.25s ease' }}>
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={to === '/'} onClick={onClose}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} tour-nav-${label.toLowerCase()}`}
               title={compact ? label : undefined}
               style={{
                 marginBottom: 4, display: 'flex',
@@ -296,10 +314,10 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <button onClick={undo}       disabled={!canUndo} title="Undo (Ctrl+Z)" className="btn btn-ghost" style={{ ...iconBtn, opacity: canUndo ? 1 : 0.35 }}><Undo2 size={16} /></button>
               <button onClick={redo}       disabled={!canRedo} title="Redo (Ctrl+Y)" className="btn btn-ghost" style={{ ...iconBtn, opacity: canRedo ? 1 : 0.35 }}><Redo2 size={16} /></button>
-              <button onClick={onPomodoro} title="Pomodoro Timer" className="btn btn-ghost" style={iconBtn}><Timer size={16} color={pomodoro.isRunning ? 'var(--accent-blue)' : undefined} /></button>
-              <button onClick={onVoice}    title="Voice Input"    className="btn btn-ghost" style={iconBtn}><Mic size={16} /></button>
-              <button onClick={onWidget}   title="Widget View"    className="btn btn-ghost" style={iconBtn}><PanelTop size={16} /></button>
-              <button onClick={onSettings} title="Settings"       className="btn btn-ghost" style={iconBtn}><Settings size={16} /></button>
+              <button onClick={onPomodoro} title="Pomodoro Timer" className="btn btn-ghost tour-pomodoro-btn" style={iconBtn}><Timer size={16} color={pomodoro.isRunning ? 'var(--accent-blue)' : undefined} /></button>
+              <button onClick={onVoice}    title="Voice Input"    className="btn btn-ghost tour-voice-btn"    style={iconBtn}><Mic size={16} /></button>
+              <button onClick={onWidget}   title="Widget View"    className="btn btn-ghost tour-widget-btn"   style={iconBtn}><PanelTop size={16} /></button>
+              <button onClick={onSettings} title="Settings"       className="btn btn-ghost tour-settings-btn" style={iconBtn}><Settings size={16} /></button>
 
               {/* Collapse toggle */}
               <button onClick={onToggleCompact} title="Expand sidebar"
@@ -335,21 +353,21 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
                   <span style={{ marginLeft: 6, opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 60, overflow: 'hidden', whiteSpace: 'nowrap', transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>Redo</span>
                 </button>
               </div>
-              <button onClick={onPomodoro} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
+              <button onClick={onPomodoro} className="btn btn-ghost tour-pomodoro-btn" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
                 <Timer size={16} color={pomodoro.isRunning ? 'var(--accent-blue)' : undefined} />
                 <span style={{ marginLeft: 8, opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 200, overflow: 'hidden', whiteSpace: 'nowrap', transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>
                   Pomodoro Timer {pomodoro.isRunning && `(${pomodoro.formattedTime})`}
                 </span>
               </button>
-              <button onClick={onVoice} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
+              <button onClick={onVoice} className="btn btn-ghost tour-voice-btn" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
                 <Mic size={16} />
                 <span style={{ marginLeft: 8, opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 200, overflow: 'hidden', whiteSpace: 'nowrap', transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>Voice Input</span>
               </button>
-              <button onClick={onWidget} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
+              <button onClick={onWidget} className="btn btn-ghost tour-widget-btn" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
                 <PanelTop size={16} />
                 <span style={{ marginLeft: 8, opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 200, overflow: 'hidden', whiteSpace: 'nowrap', transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>Widget View</span>
               </button>
-              <button onClick={onSettings} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
+              <button onClick={onSettings} className="btn btn-ghost tour-settings-btn" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 4 }}>
                 <Settings size={16} />
                 <span style={{ marginLeft: 8, opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 200, overflow: 'hidden', whiteSpace: 'nowrap', transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>Settings</span>
               </button>
@@ -372,7 +390,7 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
                   </div>
                   <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden', opacity: compact ? 0 : 1, maxWidth: compact ? 0 : 200, transition: 'opacity 0.2s ease, max-width 0.25s ease' }}>
                     {displayName && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</p>}
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{isGuest ? 'Saved locally · not synced' : userEmail}</p>
                   </div>
                 </button>
                 {showUserMenu && <UserDropdown left={12} />}
@@ -387,7 +405,7 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
 
 // ── AppContent ───────────────────────────────────────────────────────────────
 
-function AppContent({ user, onSignOut }) {
+function AppContent({ user, onSignOut, isGuest = false, onExitGuest, onFeedback }) {
   const progress = useProgress(user.id)
   const navigate = useNavigate()
   const { theme, themeMode, toggleTheme } = useTheme()
@@ -405,6 +423,8 @@ function AppContent({ user, onSignOut }) {
   const [showSettings,  setShowSettings]  = useState(false)
   const [showRollover,  setShowRollover]  = useState(false)
   const [showSearch,    setShowSearch]    = useState(false)
+  const [showTour,      setShowTour]      = useState(false)
+  const [icsPreview,    setIcsPreview]    = useState(null) // { tasks, calendarCategories, ... }
 
   // Ref so Today.jsx can register a "get current focused task" callback
   const getFocusedTaskRef = useRef(null)
@@ -473,6 +493,16 @@ function AppContent({ user, onSignOut }) {
     if (overdue.length > 0) setShowRollover(true)
   }, [progress.dataLoading]) // run once after data loads
 
+  // ── First-visit tour ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (progress.dataLoading) return
+    if (!localStorage.getItem('app_tour_completed')) {
+      // Small delay so the UI has rendered before the tour overlay appears
+      const t = setTimeout(() => setShowTour(true), 600)
+      return () => clearTimeout(t)
+    }
+  }, [progress.dataLoading]) // run once after data loads
+
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -505,6 +535,7 @@ function AppContent({ user, onSignOut }) {
       else if (showVoice)     setShowVoice(false)
       else if (showSettings)  setShowSettings(false)
       else if (showSearch)    setShowSearch(false)
+      else if (showTour)      setShowTour(false)
       else if (showReset)     setShowReset(false)
     },
     onToggleHelp:     () => setShowShortcuts(p => !p),
@@ -521,6 +552,33 @@ function AppContent({ user, onSignOut }) {
   const handleExport = () => {
     progress.exportData()
     showToast(`Exported ${progress.totalTasks} tasks`, 'success')
+  }
+
+  const handleExportIcs = (fromDate, toDate) => {
+    const count = progress.exportAsIcs(fromDate, toDate)
+    if (count > 0) showToast(`Exported ${count} tasks as .ics`, 'success')
+    return count
+  }
+
+  const handleImportIcs = (icsString) => {
+    const result = progress.importFromIcs(icsString)
+    if (!result.success) {
+      showToast(result.error, 'error')
+      return
+    }
+    if (result.tasks.length === 0) {
+      showToast('No events found in ICS file', 'error')
+      return
+    }
+    // Close settings modal and open preview
+    setShowSettings(false)
+    setIcsPreview(result)
+  }
+
+  const handleIcsConfirm = async (selectedTasks) => {
+    const count = await progress.confirmImportFromIcs(selectedTasks)
+    setIcsPreview(null)
+    showToast(`Imported ${count} task${count !== 1 ? 's' : ''} from ICS`, 'success')
   }
 
   const handleImport = async (jsonString) => {
@@ -576,6 +634,8 @@ function AppContent({ user, onSignOut }) {
         onWidget={() => setShowWidget(true)}
         onVoice={() => setShowVoice(true)}
         onSettings={() => setShowSettings(true)}
+        onFeedback={onFeedback}
+        onTour={() => setShowTour(true)}
         mobileOpen={mobileSidebar}
         onClose={() => setMobileSidebar(false)}
         onSignOut={onSignOut}
@@ -585,6 +645,7 @@ function AppContent({ user, onSignOut }) {
         onToggleCompact={handleToggleCompact}
         userEmail={user.email}
         displayName={user.user_metadata?.display_name || user.user_metadata?.full_name || ''}
+        isGuest={isGuest}
       />
 
       <main
@@ -607,6 +668,28 @@ function AppContent({ user, onSignOut }) {
         </div>
 
         <div style={{ padding: '24px 32px 48px' }}>
+          {/* Guest mode banner */}
+          {isGuest && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 16px', marginBottom: 20,
+              background: 'rgba(234,179,8,0.08)',
+              border: '1px solid rgba(234,179,8,0.3)',
+              borderRadius: 10, flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: 13, color: '#ca8a04', flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <UserCircle size={15} color="#ca8a04" style={{ flexShrink: 0 }} />
+                You're in <strong>Guest Mode</strong> — data is saved locally and will be lost if you clear your browser.
+              </span>
+              <button
+                onClick={onExitGuest}
+                className="btn btn-secondary"
+                style={{ fontSize: 12, padding: '4px 12px', flexShrink: 0 }}
+              >
+                Sign in to sync
+              </button>
+            </div>
+          )}
           <Routes>
             <Route path="/"         element={<Dashboard   progress={progress} />} />
             <Route path="/today"    element={<TodayPage    progress={{ ...progress, toggleTaskComplete: handleToggleTaskComplete, deleteTask: handleDeleteTask }} getFocusedTaskRef={getFocusedTaskRef} />} />
@@ -637,20 +720,33 @@ function AppContent({ user, onSignOut }) {
       <PomodoroTimer  isOpen={showPomodoro}  onClose={() => { setShowPomodoro(false); setPomodoroTask(null) }}  pomodoro={pomodoro} currentTask={pomodoroTask} />
       <WidgetView
         isOpen={showWidget} onClose={() => setShowWidget(false)}
-        tasks={progress.tasks} onToggleComplete={progress.toggleTaskComplete} getTopicColor={progress.getTopicColor}
+        tasks={progress.tasks} onToggleComplete={handleToggleTaskComplete} getTopicColor={progress.getTopicColor}
       />
       <VoiceInput
         isOpen={showVoice} onClose={() => setShowVoice(false)}
-        onResult={(text) => { progress.addTask({ title: text, date: new Date().toISOString().split('T')[0] }); showToast('Task added via voice', 'success') }}
+        topics={progress.topics}
+        onResult={(parsed) => {
+          progress.addTask({
+            title:    parsed.title,
+            date:     parsed.date,
+            duration: parsed.duration ?? 30,
+            dueTime:  parsed.dueTime  ?? null,
+            priority: parsed.priority ?? null,
+            topic:    parsed.topic    ?? 'Personal',
+          })
+          showToast(`Task added: "${parsed.title}"`, 'success')
+        }}
       />
       <SettingsModal
         isOpen={showSettings} onClose={() => setShowSettings(false)}
         notifications={notifications}
-        onExport={handleExport} onImport={handleImport} onReset={() => setShowReset(true)}
+        onExport={handleExport} onImport={handleImport} onExportIcs={handleExportIcs} onImportIcs={handleImportIcs} onReset={() => setShowReset(true)}
         totalTasks={progress.totalTasks}
+        tasks={progress.tasks}
         archivedTasks={progress.archivedTasks} onRestore={progress.restoreTask}
         onDeleteArchived={progress.deleteArchivedTask} onArchiveOld={progress.archiveCompletedTasks}
         getTopicColor={progress.getTopicColor}
+        onStartTour={() => { setShowSettings(false); setShowTour(true) }}
       />
 
       {/* Timer completion widget */}
@@ -658,6 +754,15 @@ function AppContent({ user, onSignOut }) {
         alert={pomodoro.timerAlert}
         onDismiss={pomodoro.dismissTimerAlert}
         onStart={pomodoro.startNextPhase}
+      />
+
+      {/* ICS Import Preview */}
+      <IcsImportPreview
+        isOpen={!!icsPreview}
+        onClose={() => setIcsPreview(null)}
+        parseResult={icsPreview}
+        topics={progress.topics}
+        onConfirm={handleIcsConfirm}
       />
 
       {toast && (
@@ -693,6 +798,13 @@ function AppContent({ user, onSignOut }) {
         getTopicColor={progress.getTopicColor}
         onNavigate={navigate}
       />
+
+      {/* App Tour */}
+      <AppTour
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+        navigate={navigate}
+      />
     </div>
   )
 }
@@ -701,10 +813,46 @@ function AppContent({ user, onSignOut }) {
 
 function Root() {
   const { user, loading, signIn, signUp, signOut, resetPassword } = useAuth()
+  const [guestMode,     setGuestMode]     = useState(() => localStorage.getItem('guest_mode') === 'true')
+  const [showAuth,      setShowAuth]      = useState(false)
+  const [showFeedback,  setShowFeedback]  = useState(false)
+
+  const handleEnterGuest = () => { localStorage.setItem('guest_mode', 'true'); setGuestMode(true) }
+  const handleExitGuest  = () => { localStorage.removeItem('guest_mode'); setGuestMode(false); setShowAuth(false) }
+
   if (supabaseMisconfigured) return <SetupScreen />
-  if (loading) return <LoadingScreen message="Starting up…" />
-  if (!user) return <AuthPage onSignIn={signIn} onSignUp={signUp} onResetPassword={resetPassword} />
-  return <BrowserRouter><AppContent user={user} onSignOut={signOut} /></BrowserRouter>
+  if (loading && !guestMode) return <LoadingScreen message="Starting up…" />
+
+  // ── Feedback page — accessible from everywhere ───────────────────────────
+  if (showFeedback) {
+    const effectiveUser = user ?? (guestMode ? { id: 'guest', email: 'guest@local', user_metadata: { display_name: 'Guest' } } : null)
+    return <FeedbackPage onBack={() => setShowFeedback(false)} user={effectiveUser} />
+  }
+
+  // ── Authenticated or guest → main app ────────────────────────────────────
+  if (user || guestMode) {
+    const effectiveUser = user ?? { id: 'guest', email: 'guest@local', user_metadata: { display_name: 'Guest' } }
+    const handleSignOut = user ? signOut : handleExitGuest
+    return (
+      <BrowserRouter>
+        <AppContent
+          user={effectiveUser}
+          onSignOut={handleSignOut}
+          isGuest={!user}
+          onExitGuest={handleExitGuest}
+          onFeedback={() => setShowFeedback(true)}
+        />
+      </BrowserRouter>
+    )
+  }
+
+  // ── Auth page ─────────────────────────────────────────────────────────────
+  if (showAuth) {
+    return <AuthPage onSignIn={signIn} onSignUp={signUp} onResetPassword={resetPassword} onGuestMode={handleEnterGuest} onBack={() => setShowAuth(false)} />
+  }
+
+  // ── Landing page (default for unauthenticated) ────────────────────────────
+  return <LandingPage onGetStarted={() => setShowAuth(true)} onGuestMode={handleEnterGuest} onFeedback={() => setShowFeedback(true)} />
 }
 
 export default function App() {

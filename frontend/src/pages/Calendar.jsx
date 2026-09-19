@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Repeat, ListChecks, BookOpen, StickyNote } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Repeat, ListChecks, BookOpen, StickyNote } from 'lucide-react'
 import AddTaskModal from '../components/AddTaskModal'
 import SearchFilter, { filterTasks } from '../components/SearchFilter'
 import DailyNotes from '../components/DailyNotes'
@@ -41,6 +41,40 @@ export default function CalendarPage({ progress }) {
   
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [pickerYear, setPickerYear] = useState(viewYear)
+
+  // Close month picker on outside click
+  const pickerRef = useRef(null)
+  useEffect(() => {
+    if (!showMonthPicker) return
+    const handler = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setShowMonthPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMonthPicker])
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const todayYear = today.getFullYear()
+  const todayMonth = today.getMonth()
+
+  const goToday = () => {
+    setViewYear(todayYear)
+    setViewMonth(todayMonth)
+    setSelectedDate(today.toISOString().split('T')[0])
+    setShowMonthPicker(false)
+  }
+
+  const jumpTo = (year, month) => {
+    setViewYear(year)
+    setViewMonth(month)
+    setShowMonthPicker(false)
+  }
+
+  const isCurrentMonth = viewYear === todayYear && viewMonth === todayMonth
   
   // Search/Filter for sidebar panel
   const [searchQuery, setSearchQuery] = useState('')
@@ -138,14 +172,97 @@ export default function CalendarPage({ progress }) {
         {/* Calendar Grid */}
         <div className="card-static">
           {/* Month nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <button className="btn btn-ghost" onClick={prevMonth} style={{ padding: 8 }}>
-              <ChevronLeft size={20} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button className="btn btn-ghost" onClick={prevMonth} style={{ padding: 8 }}>
+                <ChevronLeft size={20} />
+              </button>
+            </div>
+
+            {/* Clickable month/year — opens picker */}
+            <button
+              onClick={() => { setPickerYear(viewYear); setShowMonthPicker(p => !p) }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 18, fontWeight: 600, color: 'var(--text-primary)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px', borderRadius: 8,
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-input)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              title="Click to jump to any month"
+            >
+              {monthName}
+              <ChevronDown size={16} color="var(--text-muted)" />
             </button>
-            <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>{monthName}</h2>
-            <button className="btn btn-ghost" onClick={nextMonth} style={{ padding: 8 }}>
-              <ChevronRight size={20} />
-            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {!isCurrentMonth && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={goToday}
+                  style={{ padding: '4px 10px', fontSize: 12, color: 'var(--accent-blue)' }}
+                >
+                  Today
+                </button>
+              )}
+              <button className="btn btn-ghost" onClick={nextMonth} style={{ padding: 8 }}>
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
+            {/* Month/Year picker dropdown */}
+            {showMonthPicker && (
+              <div
+                ref={pickerRef}
+                style={{
+                  position: 'absolute', top: '110%', left: '50%', transform: 'translateX(-50%)',
+                  zIndex: 100, background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-primary)', borderRadius: 14,
+                  padding: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                  minWidth: 260,
+                }}
+              >
+                {/* Year navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <button className="btn btn-ghost" style={{ padding: 6 }}
+                    onClick={() => setPickerYear(y => y - 1)}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{pickerYear}</span>
+                  <button className="btn btn-ghost" style={{ padding: 6 }}
+                    onClick={() => setPickerYear(y => y + 1)}>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                {/* Month grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                  {MONTHS.map((m, i) => {
+                    const isSelected = pickerYear === viewYear && i === viewMonth
+                    const isTodayM   = pickerYear === todayYear && i === todayMonth
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => jumpTo(pickerYear, i)}
+                        style={{
+                          padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          fontSize: 13, fontWeight: isSelected ? 700 : 500,
+                          background: isSelected ? 'var(--accent-blue)' : isTodayM ? 'rgba(59,130,246,0.12)' : 'var(--bg-input)',
+                          color: isSelected ? 'white' : isTodayM ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(59,130,246,0.15)' }}
+                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isTodayM ? 'rgba(59,130,246,0.12)' : 'var(--bg-input)' }}
+                      >
+                        {m}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Day headers */}
@@ -278,6 +395,7 @@ export default function CalendarPage({ progress }) {
                         borderLeft: isOverdue ? '3px solid #ef4444' : undefined,
                         background: isOverdue ? 'rgba(239,68,68,0.04)' : undefined,
                         borderRadius: expandedNotes.has(task.id) ? '12px 12px 0 0' : undefined,
+                        overflow: 'hidden',
                       }}
                     >
                     <button
@@ -333,8 +451,10 @@ export default function CalendarPage({ progress }) {
                           </span>
                         )}
                       </p>
-                      {task.description && (
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{task.description}</p>
+                      {task.description?.trim() && (
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {task.description.trim()}
+                        </p>
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>

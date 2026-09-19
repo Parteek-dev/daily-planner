@@ -1,6 +1,26 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
+// ── Guest-mode localStorage adapter ──────────────────────────────────────────
+// All guest data lives under the 'guest_data' key as a single JSON blob.
+const GUEST_KEY = 'guest_planner_data'
+
+const guestDb = {
+  load() {
+    try { return JSON.parse(localStorage.getItem(GUEST_KEY) || '{}') } catch { return {} }
+  },
+  save(patch) {
+    const current = guestDb.load()
+    localStorage.setItem(GUEST_KEY, JSON.stringify({ ...current, ...patch }))
+  },
+  get(key, fallback) {
+    return guestDb.load()[key] ?? fallback
+  },
+  set(key, value) {
+    guestDb.save({ [key]: value })
+  },
+}
+
 /*
   Generic Task Schema (mirrors Supabase columns, camelCase in JS):
   {
@@ -170,6 +190,19 @@ export function useProgress(userId) {
     if (!userId) return
     let cancelled = false
 
+    // ── Guest mode: load from localStorage ───────────────────────────────
+    if (userId === 'guest') {
+      const saved = guestDb.load()
+      if (saved.tasks)    setTasks(saved.tasks)
+      if (saved.topics && saved.topics.length > 0) setTopics(saved.topics)
+      if (saved.notes)    setNotes(saved.notes)
+      if (saved.goals)    setGoals(saved.goals)
+      if (saved.templates) setTemplates(saved.templates)
+      if (saved.archivedTasks) setArchivedTasks(saved.archivedTasks)
+      setDataLoading(false)
+      return
+    }
+
     async function loadAll() {
       setDataLoading(true)
       const [
@@ -206,6 +239,22 @@ export function useProgress(userId) {
     loadAll()
     return () => { cancelled = true }
   }, [userId])
+
+  // ── Guest: sync all state to localStorage whenever it changes ────────────
+  useEffect(() => {
+    if (userId !== 'guest' || dataLoading) return
+    guestDb.save({ tasks, topics, notes, goals, templates, archivedTasks })
+  }, [userId, dataLoading, tasks, topics, notes, goals, templates, archivedTasks])
+
+  // Shorthand: true when in guest mode — used to skip Supabase writes
+  const isGuest = userId === 'guest'
+
+  // db proxy — all writes silently no-op for guest (state sync handles persistence via guestDb)
+  const noop = { data: null, error: null }
+  const noopChain = new Proxy({}, { get: () => () => noopChain, apply: () => Promise.resolve(noop) })
+  const db = isGuest
+    ? new Proxy({}, { get: () => () => noopChain })
+    : supabase
 
   // ── Recurring task generation on load ───────────────────────────────────
   useEffect(() => {
@@ -253,7 +302,7 @@ export function useProgress(userId) {
 
     if (newTasks.length > 0) {
       const rows = newTasks.map(t => taskToRow(t, userId))
-      supabase.from('tasks').insert(rows).then(({ error }) => {
+      db.from('tasks').insert(rows).then(({ error }) => {
         if (!error) setTasks(prev => [...prev, ...newTasks])
       })
     }
@@ -290,7 +339,7 @@ export function useProgress(userId) {
     setTasks(prev => [...prev, newTask])
     pushUndo({ type: 'ADD_TASK', taskId: newTask.id, task: newTask })
 
-    const { error } = await supabase.from('tasks').insert(taskToRow(newTask, userId))
+    const { error } = await db.from('tasks').insert(taskToRow(newTask, userId))
     if (error) {
       console.error('addTask error:', error)
       setTasks(prev => prev.filter(t => t.id !== newTask.id))
@@ -335,7 +384,7 @@ export function useProgress(userId) {
       patch.original_date = existingTask?.date ?? null
     }
 
-    const { error } = await supabase.from('tasks').update(patch).eq('id', taskId).eq('user_id', userId)
+    const { error } = await db.from('tasks').update(patch).eq('id', taskId).eq('user_id', userId)
     if (error) console.error('updateTask error:', error)
   }, [userId, tasks])
 
@@ -345,7 +394,7 @@ export function useProgress(userId) {
 
     setTasks(prev => prev.filter(t => t.id !== taskId))
 
-    const { error } = await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId)
+    const { error } = await db.from('tasks').delete().eq('id', taskId).eq('user_id', userId)
     if (error) {
       console.error('deleteTask error:', error)
       if (task) setTasks(prev => [...prev, task])
@@ -366,7 +415,7 @@ export function useProgress(userId) {
       t.id === taskId ? { ...t, completed, completedAt, subtasks } : t
     ))
 
-    const { error } = await supabase.from('tasks').update({
+    const { error } = await db.from('tasks').update({
       completed,
       completed_at: completedAt,
       subtasks,
@@ -377,7 +426,7 @@ export function useProgress(userId) {
 
   const setActualDuration = useCallback(async (taskId, minutes) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, actualDuration: minutes } : t))
-    const { error } = await supabase.from('tasks').update({ actual_duration: minutes }).eq('id', taskId).eq('user_id', userId)
+    const { error } = await db.from('tasks').update({ actual_duration: minutes }).eq('id', taskId).eq('user_id', userId)
     if (error) console.error('setActualDuration error:', error)
   }, [userId])
 
@@ -389,7 +438,7 @@ export function useProgress(userId) {
     const newSubtask = { id: generateId(), title: subtaskTitle, completed: false }
     const newSubtasks = [...(task.subtasks || []), newSubtask]
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: newSubtasks } : t))
-    await supabase.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
+    await db.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
   }, [tasks, userId])
 
   const updateSubtask = useCallback(async (taskId, subtaskId, updates) => {
@@ -397,7 +446,7 @@ export function useProgress(userId) {
     if (!task) return
     const newSubtasks = task.subtasks?.map(s => s.id === subtaskId ? { ...s, ...updates } : s) || []
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: newSubtasks } : t))
-    await supabase.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
+    await db.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
   }, [tasks, userId])
 
   const deleteSubtask = useCallback(async (taskId, subtaskId) => {
@@ -405,7 +454,7 @@ export function useProgress(userId) {
     if (!task) return
     const newSubtasks = task.subtasks?.filter(s => s.id !== subtaskId) || []
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: newSubtasks } : t))
-    await supabase.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
+    await db.from('tasks').update({ subtasks: newSubtasks }).eq('id', taskId).eq('user_id', userId)
   }, [tasks, userId])
 
   const toggleSubtaskComplete = useCallback(async (taskId, subtaskId) => {
@@ -419,7 +468,7 @@ export function useProgress(userId) {
     const completedAt = allDone && !task.completed ? new Date().toISOString() : task.completedAt
 
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: newSubtasks, completed, completedAt } : t))
-    await supabase.from('tasks').update({
+    await db.from('tasks').update({
       subtasks: newSubtasks,
       completed,
       completed_at: completedAt,
@@ -449,11 +498,11 @@ export function useProgress(userId) {
     setArchivedTasks(prev => [archivedTask, ...prev])
 
     // Insert into archived_tasks then delete from tasks
-    await supabase.from('archived_tasks').insert({
+    await db.from('archived_tasks').insert({
       ...taskToRow(task, userId),
       archived_at: archivedTask.archivedAt,
     })
-    await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId)
+    await db.from('tasks').delete().eq('id', taskId).eq('user_id', userId)
   }, [tasks, userId, pushUndo])
 
   const restoreTask = useCallback(async (taskId) => {
@@ -465,23 +514,27 @@ export function useProgress(userId) {
     setArchivedTasks(prev => prev.filter(t => t.id !== taskId))
     setTasks(prev => [...prev, taskData])
 
-    await supabase.from('tasks').insert(taskToRow(taskData, userId))
-    await supabase.from('archived_tasks').delete().eq('id', taskId).eq('user_id', userId)
+    await db.from('tasks').insert(taskToRow(taskData, userId))
+    await db.from('archived_tasks').delete().eq('id', taskId).eq('user_id', userId)
   }, [archivedTasks, userId, pushUndo])
 
   const deleteArchivedTask = useCallback(async (taskId) => {
     setArchivedTasks(prev => prev.filter(t => t.id !== taskId))
-    await supabase.from('archived_tasks').delete().eq('id', taskId).eq('user_id', userId)
+    await db.from('archived_tasks').delete().eq('id', taskId).eq('user_id', userId)
   }, [userId])
 
   const archiveCompletedTasks = useCallback(async (olderThanDays = 7) => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - olderThanDays)
+    const cutoffStr = cutoff.toLocaleDateString('en-CA')
 
-    const toArchive = tasks.filter(t =>
-      t.completed && t.completedAt && new Date(t.completedAt) < cutoff
-    )
-    if (toArchive.length === 0) return
+    const toArchive = tasks.filter(t => {
+      if (!t.completed) return false
+      // Compare the task's scheduled date (not completedAt) — users want to archive
+      // old planned tasks, not tasks they happened to complete on a specific day
+      return t.date <= cutoffStr
+    })
+    if (toArchive.length === 0) return 0
 
     const now = new Date().toISOString()
     const archivedRows = toArchive.map(t => ({
@@ -495,8 +548,9 @@ export function useProgress(userId) {
       ...prev,
     ])
 
-    await supabase.from('archived_tasks').insert(archivedRows)
-    await supabase.from('tasks').delete().in('id', toArchive.map(t => t.id))
+    await db.from('archived_tasks').insert(archivedRows)
+    await db.from('tasks').delete().in('id', toArchive.map(t => t.id))
+    return toArchive.length
   }, [tasks, userId])
 
   // ── Topics ───────────────────────────────────────────────────────────────
@@ -505,7 +559,7 @@ export function useProgress(userId) {
     if (topics.find(t => t.name.toLowerCase() === name.toLowerCase())) return false
     const newTopic = { name, color }
     setTopics(prev => [...prev, newTopic])
-    const { error } = await supabase.from('topics').insert({ user_id: userId, name, color })
+    const { error } = await db.from('topics').insert({ user_id: userId, name, color })
     if (error) {
       console.error('addTopic error:', error)
       setTopics(prev => prev.filter(t => t.name !== name))
@@ -516,7 +570,7 @@ export function useProgress(userId) {
 
   const removeTopic = useCallback(async (name) => {
     setTopics(prev => prev.filter(t => t.name !== name))
-    await supabase.from('topics').delete().eq('user_id', userId).eq('name', name)
+    await db.from('topics').delete().eq('user_id', userId).eq('name', name)
   }, [userId])
 
   const getTopicColor = useCallback((topicName) => {
@@ -539,12 +593,12 @@ export function useProgress(userId) {
     })
 
     if (trimmed) {
-      await supabase.from('notes').upsert(
+      await db.from('notes').upsert(
         { user_id: userId, date, content: trimmed },
         { onConflict: 'user_id,date' }
       )
     } else {
-      await supabase.from('notes').delete().eq('user_id', userId).eq('date', date)
+      await db.from('notes').delete().eq('user_id', userId).eq('date', date)
     }
   }, [userId])
 
@@ -555,7 +609,7 @@ export function useProgress(userId) {
   const setDailyGoal = useCallback(async (target) => {
     const val = Math.max(1, target)
     setGoals(prev => ({ ...prev, dailyTaskTarget: val }))
-    await supabase.from('goals').upsert(
+    await db.from('goals').upsert(
       { user_id: userId, daily_task_target: val, extra_goals: goals.extraGoals ?? [] },
       { onConflict: 'user_id' }
     )
@@ -565,7 +619,7 @@ export function useProgress(userId) {
     const newGoal = { id: generateId(), ...goalData }
     const next = [...(goals.extraGoals ?? []), newGoal]
     setGoals(prev => ({ ...prev, extraGoals: next }))
-    await supabase.from('goals').upsert(
+    await db.from('goals').upsert(
       { user_id: userId, daily_task_target: goals.dailyTaskTarget ?? 3, extra_goals: next },
       { onConflict: 'user_id' }
     )
@@ -574,7 +628,7 @@ export function useProgress(userId) {
   const removeExtraGoal = useCallback(async (goalId) => {
     const next = (goals.extraGoals ?? []).filter(g => g.id !== goalId)
     setGoals(prev => ({ ...prev, extraGoals: next }))
-    await supabase.from('goals').upsert(
+    await db.from('goals').upsert(
       { user_id: userId, daily_task_target: goals.dailyTaskTarget ?? 3, extra_goals: next },
       { onConflict: 'user_id' }
     )
@@ -597,7 +651,7 @@ export function useProgress(userId) {
       createdAt:            new Date().toISOString(),
     }
     setTemplates(prev => [...prev, tmpl])
-    await supabase.from('templates').insert({
+    await db.from('templates').insert({
       id:                     tmpl.id,
       user_id:                userId,
       name:                   tmpl.name,
@@ -615,7 +669,7 @@ export function useProgress(userId) {
 
   const deleteTemplate = useCallback(async (templateId) => {
     setTemplates(prev => prev.filter(t => t.id !== templateId))
-    await supabase.from('templates').delete().eq('id', templateId).eq('user_id', userId)
+    await db.from('templates').delete().eq('id', templateId).eq('user_id', userId)
   }, [userId])
 
   const createTaskFromTemplate = useCallback((templateId, date) => {
@@ -653,7 +707,7 @@ export function useProgress(userId) {
     for (const taskId of taskIds) {
       const task = tasks.find(t => t.id === taskId)
       if (!task || task.completed) continue
-      await supabase.from('tasks').update({
+      await db.from('tasks').update({
         completed: true,
         completed_at: now,
         subtasks: task.subtasks?.map(s => ({ ...s, completed: true })) || [],
@@ -666,13 +720,13 @@ export function useProgress(userId) {
     if (tasksToDelete.length > 0) pushUndo({ type: 'BULK_DELETE', tasks: tasksToDelete })
 
     setTasks(prev => prev.filter(t => !taskIds.includes(t.id)))
-    await supabase.from('tasks').delete().in('id', taskIds)
+    await db.from('tasks').delete().in('id', taskIds)
   }, [tasks, pushUndo])
 
   const bulkMoveTasks = useCallback(async (taskIds, newDate) => {
     setTasks(prev => prev.map(t => taskIds.includes(t.id) ? { ...t, date: newDate } : t))
     for (const taskId of taskIds) {
-      await supabase.from('tasks').update({ date: newDate }).eq('id', taskId).eq('user_id', userId)
+      await db.from('tasks').update({ date: newDate }).eq('id', taskId).eq('user_id', userId)
     }
   }, [userId])
 
@@ -682,7 +736,7 @@ export function useProgress(userId) {
       return { ...t, completed: false, completedAt: null, subtasks: t.subtasks?.map(s => ({ ...s, completed: false })) || [] }
     }))
     for (const taskId of taskIds) {
-      await supabase.from('tasks').update({ completed: false, completed_at: null }).eq('id', taskId).eq('user_id', userId)
+      await db.from('tasks').update({ completed: false, completed_at: null }).eq('id', taskId).eq('user_id', userId)
     }
   }, [userId])
 
@@ -829,7 +883,7 @@ export function useProgress(userId) {
 
   const timeTrackingStats = useMemo(() => {
     const tracked = tasks.filter(t => t.completed && t.actualDuration != null)
-    if (tracked.length === 0) return { totalEstimated: 0, totalActual: 0, accuracy: 100, overEstimateCount: 0, underEstimateCount: 0, accurateCount: 0, averageVariance: 0, byTopic: {} }
+    if (tracked.length === 0) return { totalEstimated: 0, totalActual: 0, accuracy: 0, overEstimateCount: 0, underEstimateCount: 0, accurateCount: 0, averageVariance: 0, byTopic: {}, totalTracked: 0 }
     let totalEst = 0, totalAct = 0, over = 0, under = 0, accurate = 0
     const byTopic = {}
     tracked.forEach(t => {
@@ -847,7 +901,7 @@ export function useProgress(userId) {
     return {
       totalEstimated: totalEst,
       totalActual: totalAct,
-      accuracy: Math.max(0, totalEst > 0 ? Math.round((1 - Math.abs(totalAct - totalEst) / totalEst) * 100) : 100),
+      accuracy: totalEst > 0 ? Math.max(0, Math.round((1 - Math.abs(totalAct - totalEst) / totalEst) * 100)) : 0,
       overEstimateCount: over,
       underEstimateCount: under,
       accurateCount: accurate,
@@ -1035,8 +1089,25 @@ export function useProgress(userId) {
   // ── Reset ─────────────────────────────────────────────────────────────────
 
   const resetAllData = useCallback(async () => {
+    // Clear all local state
     setTasks([])
-    await supabase.from('tasks').delete().eq('user_id', userId)
+    setTopics(DEFAULT_TOPICS)
+    setNotes({})
+    setGoals({ dailyTaskTarget: 3, extraGoals: [] })
+    setTemplates([])
+    setArchivedTasks([])
+
+    if (isGuest) { localStorage.removeItem(GUEST_KEY); return }
+
+    // Clear all Supabase tables for this user in parallel
+    await Promise.all([
+      db.from('tasks').delete().eq('user_id', userId),
+      db.from('notes').delete().eq('user_id', userId),
+      db.from('topics').delete().eq('user_id', userId),
+      db.from('goals').delete().eq('user_id', userId),
+      db.from('templates').delete().eq('user_id', userId),
+      db.from('archived_tasks').delete().eq('user_id', userId),
+    ])
   }, [userId])
 
   // ── Export / Import ───────────────────────────────────────────────────────
@@ -1054,6 +1125,316 @@ export function useProgress(userId) {
     URL.revokeObjectURL(url)
   }, [tasks, topics, notes, goals])
 
+  const exportAsIcs = useCallback((fromDate = null, toDate = null) => {
+    // Filter tasks by date range if provided
+    const filtered = tasks.filter(t => {
+      if (fromDate && t.date < fromDate) return false
+      if (toDate   && t.date > toDate)   return false
+      return true
+    })
+
+    const escIcs = (str = '') => str
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n')
+
+    const fmtDate = (dateStr, timeStr) => {
+      // Returns ICS datetime string: YYYYMMDDTHHMMSS or YYYYMMDD for all-day
+      const d = dateStr.replace(/-/g, '')
+      if (!timeStr) return `${d}`
+      const t = timeStr.replace(':', '') + '00'
+      return `${d}T${t}`
+    }
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Daily Planner//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+    ]
+
+    filtered.forEach(task => {
+      const uid = `${task.id}@daily-planner`
+      const created = task.createdAt
+        ? task.createdAt.replace(/[-:]/g, '').replace('.', '').slice(0, 15) + 'Z'
+        : fmtDate(task.date, task.dueTime)
+
+      const dtStart = task.dueTime
+        ? `DTSTART:${fmtDate(task.date, task.dueTime)}`
+        : `DTSTART;VALUE=DATE:${task.date.replace(/-/g, '')}`
+
+      // End = start + duration minutes
+      let dtEnd = ''
+      if (task.dueTime) {
+        const [h, m] = task.dueTime.split(':').map(Number)
+        const totalMins = h * 60 + m + (task.duration || 30)
+        const eh = String(Math.floor(totalMins / 60) % 24).padStart(2, '0')
+        const em = String(totalMins % 60).padStart(2, '0')
+        dtEnd = `DTEND:${task.date.replace(/-/g, '')}T${eh}${em}00`
+      } else {
+        dtEnd = `DTEND;VALUE=DATE:${task.date.replace(/-/g, '')}`
+      }
+
+      const statusLine = task.completed ? 'STATUS:COMPLETED' : 'STATUS:NEEDS-ACTION'
+      const priority = task.priority === 'high' ? 'PRIORITY:1'
+        : task.priority === 'medium' ? 'PRIORITY:5'
+        : task.priority === 'low' ? 'PRIORITY:9'
+        : 'PRIORITY:0'
+
+      const descParts = [
+        task.description && `Description: ${task.description}`,
+        `Topic: ${task.topic}`,
+        `Duration: ${task.duration}m`,
+        task.note && `Note: ${task.note}`,
+      ].filter(Boolean).join('\\n')
+
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${created}`,
+        dtStart,
+        dtEnd,
+        `SUMMARY:${escIcs(task.title)}`,
+        `DESCRIPTION:${escIcs(descParts)}`,
+        `CATEGORIES:${escIcs(task.topic)}`,
+        priority,
+        statusLine,
+        'END:VEVENT',
+      )
+    })
+
+    lines.push('END:VCALENDAR')
+
+    const icsContent = lines.join('\r\n')
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `planner-${fromDate || 'all'}-to-${toDate || 'all'}.ics`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    return filtered.length
+  }, [tasks])
+
+  const importFromIcs = useCallback((icsString, existingTasks = tasks) => {
+    try {
+      // Unfold ICS lines (RFC 5545: lines ending with CRLF+whitespace are continuations)
+      const unfolded = icsString.replace(/\r?\n[ \t]/g, '')
+
+      // Split into VEVENT blocks
+      const eventBlocks = unfolded.split('BEGIN:VEVENT')
+        .slice(1)
+        .map(b => b.split('END:VEVENT')[0])
+
+      if (eventBlocks.length === 0) return { success: false, error: 'No events found in ICS file' }
+
+      // Helper: get a property value, handles property params like DTSTART;TZID=...
+      const getProp = (block, key) => {
+        const re = new RegExp(`^${key}(?:;[^:]*)?:(.*)$`, 'im')
+        const m = block.match(re)
+        return m ? m[1].trim() : ''
+      }
+
+      // Helper: get param from a property line e.g. DTSTART;TZID=Asia/Kolkata:...
+      const getParam = (block, key, param) => {
+        const re = new RegExp(`^${key};[^:]*${param}=([^;:]+)`, 'im')
+        const m = block.match(re)
+        return m ? m[1].trim() : null
+      }
+
+      // Parse ICS datetime into { date: 'YYYY-MM-DD', time: 'HH:MM', isAllDay }
+      const parseDt = (raw, tzid = null) => {
+        if (!raw) return null
+
+        // All-day: VALUE=DATE format YYYYMMDD
+        if (!raw.includes('T')) {
+          const m = raw.match(/(\d{4})(\d{2})(\d{2})/)
+          if (!m) return null
+          return { date: `${m[1]}-${m[2]}-${m[3]}`, time: null, isAllDay: true }
+        }
+
+        // UTC: ends with Z — convert to local
+        if (raw.endsWith('Z')) {
+          const m = raw.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/)
+          if (!m) return null
+          const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`)
+          const localDate = d.toLocaleDateString('en-CA') // YYYY-MM-DD in local tz
+          const localH = String(d.getHours()).padStart(2, '0')
+          const localM = String(d.getMinutes()).padStart(2, '0')
+          return { date: localDate, time: `${localH}:${localM}`, isAllDay: false }
+        }
+
+        // Named timezone: TZID — use Intl to convert
+        if (tzid) {
+          try {
+            const m = raw.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/)
+            if (!m) return null
+            // Create date in the named timezone
+            const isoLocal = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`
+            // Get UTC offset for this timezone at this datetime
+            const tzDate = new Date(new Date(isoLocal).toLocaleString('en-US', { timeZone: tzid }))
+            const diff = new Date(isoLocal) - tzDate
+            const adjusted = new Date(new Date(isoLocal).getTime() - diff)
+            const localDate = adjusted.toLocaleDateString('en-CA')
+            const localH = String(adjusted.getHours()).padStart(2, '0')
+            const localM = String(adjusted.getMinutes()).padStart(2, '0')
+            return { date: localDate, time: `${localH}:${localM}`, isAllDay: false }
+          } catch {
+            // TZID not recognised — fall through to floating time
+          }
+        }
+
+        // Floating local time: YYYYMMDDTHHMMSS
+        const m = raw.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/)
+        if (!m) return null
+        return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}`, isAllDay: false }
+      }
+
+      // Parse RRULE → recurrence field
+      const parseRRule = (block) => {
+        const rrule = getProp(block, 'RRULE')
+        if (!rrule) return 'none'
+        const freq = rrule.match(/FREQ=(\w+)/i)?.[1]?.toUpperCase()
+        const byDay = rrule.match(/BYDAY=([^;]+)/i)?.[1] || ''
+        const wdSet = new Set(byDay.toUpperCase().split(',').map(s => s.trim()))
+        const weekdays = new Set(['MO','TU','WE','TH','FR'])
+        if (freq === 'DAILY') return 'daily'
+        if (freq === 'WEEKLY') {
+          if (wdSet.size > 0 && [...wdSet].every(d => weekdays.has(d)) && wdSet.size === 5) return 'weekdays'
+          return 'weekly'
+        }
+        // Monthly / Yearly — import as one-off
+        return 'none'
+      }
+
+      // Unescape ICS text values
+      const unescape = (s = '') => s
+        .replace(/\\n/g, '\n').replace(/\\N/g, '\n')
+        .replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\')
+
+      const calendarCategories = new Set()
+      const parsedTasks = []
+
+      eventBlocks.forEach((block, idx) => {
+        const summary = unescape(getProp(block, 'SUMMARY'))
+        if (!summary) return
+
+        const dtStartRaw = getProp(block, 'DTSTART')
+        const dtStartTzid = getParam(block, 'DTSTART', 'TZID')
+        const dtEndRaw   = getProp(block, 'DTEND')
+
+        const start = parseDt(dtStartRaw, dtStartTzid)
+        const end   = parseDt(dtEndRaw, dtStartTzid)
+
+        if (!start) return // can't parse date — skip
+
+        // Duration in minutes
+        let duration = start.isAllDay ? 60 : 30
+        if (start && end && !start.isAllDay && !end.isAllDay && start.time && end.time) {
+          const [sh, sm] = start.time.split(':').map(Number)
+          const [eh, em] = end.time.split(':').map(Number)
+          // Handle overnight events
+          const startMins = sh * 60 + sm
+          let endMins = eh * 60 + em
+          if (endMins < startMins) endMins += 24 * 60
+          const diff = endMins - startMins
+          if (diff > 0 && diff <= 480) duration = diff // cap at 8h
+          else if (diff > 0) duration = 120 // default 2h for very long events
+        }
+
+        // DURATION property fallback (e.g. PT1H30M)
+        const durationProp = getProp(block, 'DURATION')
+        if (durationProp && duration === 30) {
+          const h = parseInt(durationProp.match(/(\d+)H/)?.[1] || 0)
+          const m = parseInt(durationProp.match(/(\d+)M/)?.[1] || 0)
+          if (h || m) duration = h * 60 + m
+        }
+
+        const priority = (() => {
+          const p = parseInt(getProp(block, 'PRIORITY'))
+          if (p >= 1 && p <= 4) return 'high'
+          if (p === 5) return 'medium'
+          if (p >= 6 && p <= 9) return 'low'
+          return null
+        })()
+
+        const categories = getProp(block, 'CATEGORIES')
+        if (categories) calendarCategories.add(categories.split(',')[0].trim())
+
+        const status = getProp(block, 'STATUS')
+        const completed = status === 'COMPLETED'
+
+        const recurrence = parseRRule(block)
+
+        // Clean description — strip HTML, URLs, meeting metadata
+        const rawDesc = unescape(getProp(block, 'DESCRIPTION'))
+        const description = rawDesc
+          // Strip HTML tags
+          .replace(/<[^>]*>/g, '')
+          // Decode HTML entities
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+          // Remove URLs (http/https)
+          .replace(/https?:\/\/[^\s<>]*/g, '')
+          // Remove lines that are just separators or whitespace
+          .split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 2) // skip very short/empty lines
+          // Drop lines that look like meeting metadata
+          .filter(l => !/^(Meeting ID|Passcode|Join|For organizers|Microsoft Teams|Need help|[\-_=]{3,})/i.test(l))
+          .slice(0, 3)
+          .join(' ')  // join as single line instead of multiline
+          .trim()
+          .slice(0, 200) // hard cap at 200 chars
+        const uid = getProp(block, 'UID') || `ics-${idx}`
+
+        const isDuplicate = existingTasks.some(t =>
+          t.title.toLowerCase() === summary.toLowerCase() && t.date === start.date
+        )
+
+        parsedTasks.push({
+          _uid: uid,
+          _isAllDay: start.isAllDay,
+          _isDuplicate: isDuplicate,
+          _categories: categories ? categories.split(',')[0].trim() : '',
+          title: summary,
+          description,
+          date: start.date,
+          dueTime: start.isAllDay ? null : (start.time || null),
+          duration,
+          priority,
+          topic: 'Personal', // will be mapped in preview modal
+          completed,
+          recurrence,
+          subtasks: [],
+        })
+      })
+
+      return {
+        success: true,
+        tasks: parsedTasks,
+        calendarCategories: Array.from(calendarCategories),
+        total: parsedTasks.length,
+        duplicates: parsedTasks.filter(t => t._isDuplicate).length,
+      }
+    } catch (err) {
+      return { success: false, error: `Failed to parse ICS: ${err.message}` }
+    }
+  }, [tasks, topics])
+
+  const confirmImportFromIcs = useCallback(async (parsedTasks) => {
+    const added = []
+    for (const t of parsedTasks) {
+      const task = await addTask(t)
+      added.push(task)
+    }
+    return added.length
+  }, [addTask])
+
   const importData = useCallback(async (jsonString) => {
     try {
       const data = JSON.parse(jsonString)
@@ -1064,22 +1445,22 @@ export function useProgress(userId) {
       }
 
       // Clear existing and insert imported
-      await supabase.from('tasks').delete().eq('user_id', userId)
+      await db.from('tasks').delete().eq('user_id', userId)
       if (data.tasks.length > 0) {
-        await supabase.from('tasks').insert(data.tasks.map(t => taskToRow(t, userId)))
+        await db.from('tasks').insert(data.tasks.map(t => taskToRow(t, userId)))
       }
-      await supabase.from('topics').delete().eq('user_id', userId)
+      await db.from('topics').delete().eq('user_id', userId)
       if (data.topics.length > 0) {
-        await supabase.from('topics').insert(data.topics.map(t => ({ user_id: userId, name: t.name, color: t.color })))
+        await db.from('topics').insert(data.topics.map(t => ({ user_id: userId, name: t.name, color: t.color })))
       }
       if (data.notes && typeof data.notes === 'object') {
-        await supabase.from('notes').delete().eq('user_id', userId)
+        await db.from('notes').delete().eq('user_id', userId)
         const noteRows = Object.entries(data.notes).filter(([, v]) => v?.trim()).map(([date, content]) => ({ user_id: userId, date, content }))
-        if (noteRows.length > 0) await supabase.from('notes').insert(noteRows)
+        if (noteRows.length > 0) await db.from('notes').insert(noteRows)
         setNotes(data.notes)
       }
       if (data.goals && typeof data.goals === 'object') {
-        await supabase.from('goals').upsert({ user_id: userId, daily_task_target: data.goals.dailyTaskTarget || 3, extra_goals: data.goals.extraGoals ?? [] }, { onConflict: 'user_id' })
+        await db.from('goals').upsert({ user_id: userId, daily_task_target: data.goals.dailyTaskTarget || 3, extra_goals: data.goals.extraGoals ?? [] }, { onConflict: 'user_id' })
         setGoals(data.goals)
       }
 
@@ -1156,6 +1537,6 @@ export function useProgress(userId) {
     // Reset
     resetAllData,
     // Export/Import
-    exportData, importData,
+    exportData, importData, exportAsIcs, importFromIcs, confirmImportFromIcs,
   }
 }

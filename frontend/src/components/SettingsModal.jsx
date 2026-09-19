@@ -3,7 +3,7 @@ import {
   X, Palette, Bell, Database, Archive as ArchiveIcon, Info,
   Download, Upload, RotateCcw, Flame, Target, Zap, Clock,
   BarChart3, CheckCircle2, TrendingUp, Sun, Moon, SunMoon, Check,
-  Search, Calendar, Trash2,
+  Search, Calendar, Trash2, Settings, Compass,
 } from 'lucide-react'
 import { useTheme, ACCENT_COLORS } from '../hooks/useTheme.jsx'
 
@@ -22,8 +22,9 @@ const TABS = [
 export default function SettingsModal({
   isOpen, onClose,
   notifications,
-  onExport, onImport, onReset, totalTasks,
+  onExport, onImport, onExportIcs, onImportIcs, onReset, totalTasks, tasks = [],
   archivedTasks, onRestore, onDeleteArchived, onArchiveOld, getTopicColor,
+  onStartTour,
 }) {
   const [activeTab, setActiveTab] = useState('appearance')
 
@@ -44,7 +45,9 @@ export default function SettingsModal({
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '20px 24px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0,
         }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>⚙️ Settings</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Settings size={20} color="var(--text-secondary)" /> Settings
+          </h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
             <X size={20} />
           </button>
@@ -82,9 +85,9 @@ export default function SettingsModal({
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
             {activeTab === 'appearance'    && <AppearanceTab />}
             {activeTab === 'notifications' && <NotificationsTab notifications={notifications} />}
-            {activeTab === 'data'          && <DataTab onExport={onExport} onImport={onImport} onReset={() => { onClose(); onReset() }} totalTasks={totalTasks} />}
+            {activeTab === 'data'          && <DataTab onExport={onExport} onImport={onImport} onExportIcs={onExportIcs} onImportIcs={onImportIcs} onReset={() => { onClose(); onReset() }} totalTasks={totalTasks} tasks={tasks} />}
             {activeTab === 'archive'       && <ArchiveTab archivedTasks={archivedTasks} onRestore={onRestore} onDelete={onDeleteArchived} onArchiveOld={onArchiveOld} getTopicColor={getTopicColor} />}
-            {activeTab === 'about'         && <AboutTab />}
+            {activeTab === 'about'         && <AboutTab onStartTour={() => { onClose(); onStartTour?.() }} />}
           </div>
         </div>
       </div>
@@ -245,7 +248,32 @@ function NotificationsTab({ notifications }) {
 
 // ── DATA tab ──────────────────────────────────────────────────────────────────
 
-function DataTab({ onExport, onImport, onReset, totalTasks }) {
+function DataTab({ onExport, onImport, onExportIcs, onImportIcs, onReset, totalTasks, tasks }) {
+  const [icsFrom, setIcsFrom] = useState('')
+  const [icsTo,   setIcsTo]   = useState('')
+
+  const today     = new Date().toISOString().split('T')[0]
+  const monday    = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().split('T')[0] })()
+  const sunday    = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 6); return d.toISOString().split('T')[0] })()
+  const monthStart= today.slice(0, 8) + '01'
+  const monthEnd  = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1, 0); return d.toISOString().split('T')[0] })()
+
+  const PRESETS = [
+    { label: 'Today',      from: today,      to: today },
+    { label: 'This week',  from: monday,     to: sunday },
+    { label: 'This month', from: monthStart, to: monthEnd },
+    { label: 'All tasks',  from: '',         to: '' },
+  ]
+
+  const applyPreset = (p) => { setIcsFrom(p.from); setIcsTo(p.to) }
+
+  // Live count of tasks in range
+  const matchCount = tasks?.filter(t => {
+    if (icsFrom && t.date < icsFrom) return false
+    if (icsTo   && t.date > icsTo)   return false
+    return true
+  }).length ?? 0
+
   const handleImport = () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -260,30 +288,141 @@ function DataTab({ onExport, onImport, onReset, totalTasks }) {
     input.click()
   }
 
+  const handleExportIcs = () => {
+    console.log('DataTab handleExportIcs, onExportIcs:', typeof onExportIcs, 'from:', icsFrom, 'to:', icsTo)
+    if (!onExportIcs) { alert('onExportIcs not provided'); return }
+    const count = onExportIcs(icsFrom || null, icsTo || null)
+    if (count === 0) alert('No tasks found in the selected date range.')
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <SectionHeader title="Data Management" subtitle="Export, import, or reset your planner data" />
 
+      {/* JSON Backup — export + import grouped */}
       <div className="card-static" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>Export Data</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Download all {totalTasks} tasks as a JSON backup</p>
-          </div>
-          <button onClick={onExport} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <Download size={14} /> Export
+        <div style={{ flex: 1, marginBottom: 14 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>JSON Backup</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Full backup of all {totalTasks} tasks, topics, notes and settings. Use to restore on any device.</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button onClick={onExport} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px' }}>
+            <Download size={14} /> Export JSON
+          </button>
+          <button onClick={handleImport} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px' }}>
+            <Upload size={14} /> Import JSON
           </button>
         </div>
       </div>
 
+      {/* ICS Export */}
       <div className="card-static" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>Import Data</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Restore from a previously exported JSON file</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Calendar size={15} color="var(--accent-blue)" />
+              Export as ICS Calendar
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Opens in Google, Apple, Outlook — any calendar app
+            </p>
           </div>
-          <button onClick={handleImport} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <Upload size={14} /> Import
+        </div>
+
+        {/* Quick presets */}
+        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Quick select</p>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {PRESETS.map(p => {
+            const active = icsFrom === p.from && icsTo === p.to
+            return (
+              <button
+                key={p.label}
+                onClick={() => applyPreset(p)}
+                style={{
+                  padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                  cursor: 'pointer', border: `1px solid ${active ? 'var(--accent-blue)' : 'var(--border-primary)'}`,
+                  background: active ? 'rgba(59,130,246,0.12)' : 'var(--bg-input)',
+                  color: active ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {p.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Custom range */}
+        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Custom range</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>From</label>
+            <input type="date" className="input" value={icsFrom}
+              onChange={e => setIcsFrom(e.target.value)}
+              style={{ padding: '7px 10px', fontSize: 13, width: '100%' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>To</label>
+            <input type="date" className="input" value={icsTo}
+              onChange={e => setIcsTo(e.target.value)}
+              min={icsFrom || undefined}
+              style={{ padding: '7px 10px', fontSize: 13, width: '100%' }} />
+          </div>
+        </div>
+
+        {/* Footer: count + button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border-primary)' }}>
+          <span style={{ fontSize: 13, color: matchCount > 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+            {matchCount > 0
+              ? <><strong style={{ color: 'var(--accent-blue)' }}>{matchCount}</strong> task{matchCount !== 1 ? 's' : ''} will be exported</>
+              : 'No tasks in selected range'
+            }
+          </span>
+          <button
+            onClick={handleExportIcs}
+            disabled={matchCount === 0}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: matchCount === 0 ? 0.5 : 1 }}
+          >
+            <Download size={14} /> Download .ics
+          </button>
+        </div>
+      </div>
+
+      {/* ICS Import */}
+      <div className="card-static" style={{ padding: 18 }}>
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Upload size={15} color="var(--accent-blue)" />
+            Import from ICS Calendar
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Import events from Google Calendar, Apple Calendar, Outlook or any app that exports .ics
+          </p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 280, lineHeight: 1.5 }}>
+            Pick a .ics file — you'll get a preview before anything is imported.
+          </p>
+          <button
+            onClick={() => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.accept = '.ics,.ical'
+              input.onchange = e => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = ev => onImportIcs(ev.target.result)
+                reader.readAsText(file)
+              }
+              input.click()
+            }}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
+          >
+            <Calendar size={14} /> Choose .ics file
           </button>
         </div>
       </div>
@@ -308,6 +447,17 @@ function DataTab({ onExport, onImport, onReset, totalTasks }) {
 function ArchiveTab({ archivedTasks, onRestore, onDelete, onArchiveOld, getTopicColor }) {
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [archiveMsg, setArchiveMsg] = useState(null)
+
+  const handleArchiveOld = async () => {
+    const moved = await onArchiveOld(7) ?? 0
+    if (moved > 0) {
+      setArchiveMsg(`✓ ${moved} task${moved !== 1 ? 's' : ''} moved to archive.`)
+    } else {
+      setArchiveMsg('No completed tasks older than 7 days found.')
+    }
+    setTimeout(() => setArchiveMsg(null), 3500)
+  }
 
   const filtered = archivedTasks.filter(t =>
     t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -320,11 +470,15 @@ function ArchiveTab({ archivedTasks, onRestore, onDelete, onArchiveOld, getTopic
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <SectionHeader title={`Archive (${archivedTasks.length})`} subtitle="View and restore completed tasks" />
-        <button className="btn btn-secondary" onClick={() => onArchiveOld(7)} style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, fontSize: 12 }}>
+        <button className="btn btn-secondary" onClick={handleArchiveOld} style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, fontSize: 12 }}>
           <ArchiveIcon size={13} /> Archive old
         </button>
       </div>
-
+      {archiveMsg && (
+        <div style={{ fontSize: 12, color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, padding: '8px 12px' }}>
+          {archiveMsg}
+        </div>
+      )}
       {archivedTasks.length > 0 && (
         <div style={{ position: 'relative' }}>
           <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -383,10 +537,35 @@ function ArchiveTab({ archivedTasks, onRestore, onDelete, onArchiveOld, getTopic
 
 // ── ABOUT tab ─────────────────────────────────────────────────────────────────
 
-function AboutTab() {
+function AboutTab({ onStartTour }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <SectionHeader title="About Daily Planner" subtitle="Feature guide and keyboard shortcuts" />
+
+      {/* ── Tour launcher ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 16px', borderRadius: 12,
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(59,130,246,0.1) 100%)',
+        border: '1px solid rgba(99,102,241,0.25)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Compass size={18} color="white" />
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>App Tour</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>A guided walkthrough of every feature</p>
+          </div>
+        </div>
+        <button
+          onClick={onStartTour}
+          className="btn btn-primary"
+          style={{ fontSize: 13, padding: '8px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <Compass size={14} /> Start Tour
+        </button>
+      </div>
 
       <AboutSection icon={<Zap size={15} color="#f59e0b" />} title="Productivity Score" desc="Score out of 100 based on streaks, completion, and goals">
         {[['Streaks','40 pts','4 pts/day, max 40'],['Completion','30 pts','Based on overall % done'],['Goals','30 pts','Days you hit daily goal (last 7)']].map(([l,p,d]) => (

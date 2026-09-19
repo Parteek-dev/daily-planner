@@ -171,7 +171,7 @@ export default function TimeTrackingStats({ stats, getTopicColor }) {
             {Object.entries(byTopic).map(([topic, data]) => {
               const topicAccuracy = data.estimated > 0 
                 ? Math.max(0, Math.round((1 - Math.abs(data.actual - data.estimated) / data.estimated) * 100))
-                : 100
+                : 0
               const variance = data.actual - data.estimated
               
               return (

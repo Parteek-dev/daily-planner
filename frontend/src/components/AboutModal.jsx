@@ -50,7 +50,7 @@ export default function AboutModal({ isOpen, onClose }) {
           {/* Streaks */}
           <Section 
             icon={<Flame size={18} color="#f97316" />}
-            title="Study Streak"
+            title="Daily Streak"
             description="Consecutive days with at least one completed task"
           >
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>

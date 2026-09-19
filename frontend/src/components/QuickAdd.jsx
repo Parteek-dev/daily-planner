@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Zap, Plus, Clock, Calendar, Tag, Flag } from 'lucide-react'
+import { Zap, Plus, Clock, Calendar, Tag, Flag, AlertTriangle } from 'lucide-react'
 
 // Natural language parser for quick task input
 function parseQuickInput(input, topics = []) {
@@ -382,8 +382,9 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
             background: 'rgba(249,115,22,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
           }}>
-            <span style={{ fontSize: 12, color: '#f97316', fontWeight: 500 }}>
-              ⚠️ "{pendingTask?.title}" already exists on this date.
+            <span style={{ fontSize: 12, color: '#f97316', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <AlertTriangle size={12} color="#f97316" style={{ flexShrink: 0 }} />
+              "{pendingTask?.title}" already exists on this date.
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={cancelDup} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>

@@ -45,7 +45,7 @@ export default function DailyNotes({ date, note, onSave }) {
   })
 
   return (
-    <div className="card-static" style={{ marginTop: 20, padding: 16 }}>
+    <div className="card-static tour-daily-notes" style={{ marginTop: 20, padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ 
           display: 'flex', 

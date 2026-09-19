@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, CheckCircle2, Circle, Clock, Flag, Play, Pause, RotateCcw, ChevronRight, Sparkles } from 'lucide-react'
+import { X, CheckCircle2, Circle, Clock, Flag, Play, Pause, RotateCcw, ChevronRight, Sparkles, PartyPopper } from 'lucide-react'
 import { PRIORITY_CONFIG } from '../hooks/useProgress'
 
 export default function FocusMode({ 
@@ -122,7 +122,9 @@ export default function FocusMode({
       {/* Task completed celebration */}
       {task.completed ? (
         <div className="animate-fadeIn" style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <PartyPopper size={64} color="var(--accent-green)" />
+          </div>
           <h1 style={{ fontSize: 32, fontWeight: 700, color: 'var(--accent-green)', marginBottom: 8 }}>
             Task Completed!
           </h1>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Search, Calendar, X, Clock, CheckCircle2, Circle, ArrowRight } from 'lucide-react'
+import { Search, Calendar, X, Clock, CheckCircle2, Circle, ArrowRight, StickyNote } from 'lucide-react'
 
 function getDateLabel(dateStr) {
   const today = new Date()
@@ -208,7 +208,9 @@ export default function CommandPalette({ isOpen, onClose, tasks, topics, getTopi
                           <Clock size={10} /> {task.duration}m
                         </span>
                         {task.note?.trim() && (
-                          <span style={{ fontSize: 11, color: 'var(--accent-blue)' }}>📝 has note</span>
+                          <span style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <StickyNote size={10} /> has note
+                          </span>
                         )}
                       </div>
                     </div>

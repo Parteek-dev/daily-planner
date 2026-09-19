@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Flame, Trophy, Clock, CheckCircle2, TrendingUp, AlertCircle, X } from 'lucide-react'
+import { Flame, Trophy, Clock, CheckCircle2, TrendingUp, AlertCircle, X, PartyPopper } from 'lucide-react'
 import ProgressRing from '../components/ProgressRing'
 import Heatmap from '../components/Heatmap'
 import ProductivityScore from '../components/ProductivityScore'
@@ -40,7 +40,7 @@ export default function Dashboard({ progress }) {
   const hours = Math.floor(totalMinutesCompleted / 60)
   const mins = totalMinutesCompleted % 60
 
-  const allDoneToday = todayTotal > 0 && todayCompleted === todayTotal
+  const allDoneToday = dailyGoalProgress.achieved
 
   // ── Celebration banner ──────────────────────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false)
@@ -88,7 +88,9 @@ export default function Dashboard({ progress }) {
             pointerEvents: 'none',
           }} />
 
-          <span style={{ fontSize: 32, lineHeight: 1 }}>🎉</span>
+          <span style={{ display: 'flex', alignItems: 'center', color: 'var(--accent-green)' }}>
+            <PartyPopper size={28} />
+          </span>
 
           <div style={{ flex: 1, minWidth: 200 }}>
             <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
@@ -108,7 +110,7 @@ export default function Dashboard({ progress }) {
               {streakData.current > 0 && (
                 <span style={{ fontSize: 13, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 500 }}>
                   <Flame size={14} />
-                  {streakData.current}-day streak 🔥
+                  {streakData.current}-day streak <Flame size={14} color="#f97316" />
                 </span>
               )}
               {dailyGoalProgress?.achieved && (
@@ -143,19 +145,19 @@ export default function Dashboard({ progress }) {
       </div>
 
       {/* Top stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="tour-dashboard-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         {/* Progress Ring */}
         <div className="card-static" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <ProgressRing percent={todayPercent} />
+          <ProgressRing percent={dailyGoalProgress.percent} />
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-            {todayCompleted} / {todayTotal} today
+            {todayCompleted} / {dailyGoalProgress.target} today
           </p>
         </div>
 
         {/* Streak */}
         <div className="card-static">
           <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>
-            Study Streak
+            Daily Streak
           </h3>
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1, textAlign: 'center', padding: 12, background: 'var(--bg-input)', borderRadius: 12 }}>
@@ -200,12 +202,12 @@ export default function Dashboard({ progress }) {
       </div>
 
       {/* Heatmap */}
-      <div className="card-static" style={{ marginBottom: 24 }}>
+      <div className="card-static tour-dashboard-heatmap" style={{ marginBottom: 24 }}>
         <Heatmap heatmapData={heatmapData} />
       </div>
 
       {/* Goal & Productivity Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="tour-dashboard-goals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         <GoalSetting 
           dailyGoal={goals.dailyTaskTarget} 
           onSetGoal={setDailyGoal} 
@@ -234,7 +236,7 @@ export default function Dashboard({ progress }) {
       </div>
 
       {/* Analytics Section */}
-      <div style={{ marginBottom: 24 }}>
+      <div className="tour-dashboard-analytics" style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>
           Analytics & Insights
         </h2>
@@ -246,15 +248,15 @@ export default function Dashboard({ progress }) {
       </div>
 
       {/* Tasks Over Time Chart */}
-      <div className="card-static" style={{ marginBottom: 24 }}>
+      <div className="card-static tour-dashboard-chart" style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>
           Tasks Completed (Last 30 Days)
         </h3>
-        <LineChart data={chartData30Days} height={180} />
+        <LineChart data={chartData30Days} height={220} />
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="tour-dashboard-bottom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Topic breakdown */}
         <div className="card-static">
           <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>

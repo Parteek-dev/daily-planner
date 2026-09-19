@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Flag, Repeat, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Flag, Repeat, RotateCcw, InboxIcon, Sparkles, CalendarDays } from 'lucide-react'
 import AddTaskModal from '../components/AddTaskModal'
 import { PRIORITY_CONFIG } from '../hooks/useProgress'
 
@@ -284,8 +284,13 @@ export default function WeekPage({ progress }) {
                     }}
                     onClick={() => openAdd(str)}
                   >
-                    <span style={{ fontSize: 22, lineHeight: 1 }}>
-                      {isPast ? '📭' : isToday ? '✨' : '🗓️'}
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {isPast
+                        ? <InboxIcon size={22} color="var(--text-muted)" />
+                        : isToday
+                          ? <Sparkles size={22} color="var(--accent-blue)" />
+                          : <CalendarDays size={22} color="var(--text-muted)" />
+                      }
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.4 }}>
                       {isPast ? 'Nothing was\nplanned' : isToday ? 'Free today!\nAdd a task' : 'Nothing\nplanned'}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, CheckCheck, Sparkles, ChevronDown, ChevronRight, Repeat, GripVertical, Square, CheckSquare, Calendar, X, Flag, Link, Focus, LayoutList, Clock3, CalendarClock, StickyNote, ChevronUp } from 'lucide-react'
+import { Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, CheckCheck, Sparkles, ChevronDown, ChevronRight, Repeat, GripVertical, Square, CheckSquare, Calendar, X, Flag, Link, Focus, LayoutList, Clock3, CalendarClock, StickyNote, ChevronUp, ClipboardList, AlertTriangle } from 'lucide-react'
 import AddTaskModal from '../components/AddTaskModal'
 import SearchFilter, { filterTasks } from '../components/SearchFilter'
 import DailyNotes from '../components/DailyNotes'
@@ -338,7 +338,9 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
           gap: 12,
           flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>
+          <span style={{ display: 'flex', alignItems: 'center' }}>
+            <AlertTriangle size={18} color="#f97316" />
+          </span>
           <div style={{ flex: 1, minWidth: 180 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#f97316', marginBottom: 2 }}>
               Heavy day ahead — {Math.floor(incompleteMins / 60)}h {incompleteMins % 60}m planned
@@ -593,7 +595,9 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
         filteredTasks.length === 0 ? (
           todayTasks.length === 0 ? (
             <div className="card-static" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                <ClipboardList size={40} color="var(--text-muted)" style={{ opacity: 0.5 }} />
+              </div>
               <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>No tasks for today</p>
               <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 16 }}>Add some tasks to get started</p>
               <button 
@@ -767,8 +771,8 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
                     }}>
                       {task.title}
                     </p>
-                    {task.description && (
-                      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>{task.description}</p>
+                    {task.description?.trim() && (
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{task.description.trim()}</p>
                     )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

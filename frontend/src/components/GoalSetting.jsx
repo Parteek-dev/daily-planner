@@ -1,18 +1,18 @@
 import { useState } from 'react'
-import { Target, Minus, Plus, Trophy, CheckCircle2, Trash2, PlusCircle, X } from 'lucide-react'
+import { Target, Minus, Plus, Trophy, CheckCircle2, Trash2, PlusCircle, X, CheckSquare, Timer, Flag, AlertTriangle } from 'lucide-react'
 
 const GOAL_TYPES = [
-  { value: 'min_tasks',    label: 'Complete at least N tasks' },
-  { value: 'min_time',     label: 'Spend at least X minutes'  },
-  { value: 'all_priority', label: 'Complete all tasks by priority' },
+  { value: 'min_tasks',    label: 'Complete at least N tasks',      icon: <CheckSquare size={15} color="#22c55e" /> },
+  { value: 'min_time',     label: 'Spend at least X minutes',       icon: <Timer       size={15} color="#6366f1" /> },
+  { value: 'all_priority', label: 'Complete all tasks by priority', icon: <Flag        size={15} color="#ef4444" /> },
 ]
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low']
 
 const GOAL_ICONS = {
-  min_tasks:    '✅',
-  min_time:     '⏱',
-  all_priority: '🚩',
+  min_tasks:    <CheckSquare size={14} color="#22c55e" />,
+  min_time:     <Timer       size={14} color="#6366f1" />,
+  all_priority: <Flag        size={14} color="#ef4444" />,
 }
 
 function goalLabel(goal) {
@@ -101,7 +101,9 @@ function AddGoalForm({ topics, existingGoals = [], onAdd, onCancel }) {
                 cursor: 'pointer', fontSize: 13, fontWeight: type === gt.value ? 600 : 400,
               }}
             >
-              {GOAL_ICONS[gt.value]} {gt.label}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {gt.icon} {gt.label}
+              </span>
             </button>
           ))}
         </div>
@@ -190,8 +192,9 @@ function AddGoalForm({ topics, existingGoals = [], onAdd, onCancel }) {
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dupError && (
-          <p style={{ fontSize: 12, color: '#f97316', fontWeight: 500, margin: 0 }}>
-            ⚠️ A goal of this type{type !== 'all_priority' ? ' for this topic' : ''} already exists.
+          <p style={{ fontSize: 12, color: '#f97316', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <AlertTriangle size={13} color="#f97316" style={{ flexShrink: 0 }} />
+            A goal of this type{type !== 'all_priority' ? ' for this topic' : ''} already exists.
           </p>
         )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -258,7 +261,7 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
           <div style={{ marginBottom: extraGoalsProgress.length > 0 ? 14 : 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>✅</span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}><CheckSquare size={14} color="#22c55e" /></span>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
                   Complete {target}+ tasks
                 </span>
