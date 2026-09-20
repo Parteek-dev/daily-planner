@@ -420,8 +420,8 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
       )}
 
       {/* Actions bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Tasks {filteredTasks.length !== todayTasks.length && `(${filteredTasks.length}/${todayTasks.length})`}
           </h3>
@@ -479,7 +479,7 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
           </button>
         </div>
         
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {selectionMode ? (
             <>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', alignSelf: 'center' }}>

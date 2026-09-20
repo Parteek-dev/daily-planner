@@ -831,3 +831,150 @@ body {
 [data-theme="light"] .tour-popover {
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(99, 102, 241, 0.15);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE FIXES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Page content padding — desktop default */
+.page-content {
+  padding: 24px 32px 48px;
+}
+
+/* Calendar: show full day name on wide screens, initial only on narrow */
+@media (max-width: 480px) {
+  .cal-day-full { display: none; }
+}
+
+/* Mobile: reduce page padding */
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px 16px 40px;
+  }
+}
+
+/* Week page scroll hint: hidden on desktop, shown on mobile */
+.week-scroll-hint {
+  display: none;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  margin-bottom: 2px;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 900px) {
+  .week-scroll-hint {
+    display: block;
+  }
+}
+
+/* Calendar page layout */
+.calendar-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Week page: mobile vs desktop layout switching via CSS (not JS) */
+.week-mobile-view  { display: none; }
+.week-desktop-view { display: block; }
+
+@media (max-width: 768px) {
+  .week-mobile-view  { display: block; }
+  .week-desktop-view { display: none; }
+}
+
+/* Week grid (desktop only) */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(148px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .week-grid {
+    grid-template-columns: repeat(7, minmax(130px, 1fr));
+    gap: 8px;
+  }
+}
+
+/* Guest mode banner: hide long detail text on narrow screens */
+@media (max-width: 480px) {
+  .guest-banner-detail { display: none; }
+}
+
+/* ── Widget View: bottom sheet on mobile, floating panel on desktop ── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.widget-mobile-sheet  { display: none; }
+.widget-desktop-panel { display: block; }
+
+@media (max-width: 768px) {
+  .widget-mobile-sheet  { display: block; }
+  .widget-desktop-panel { display: none; }
+}
+
+/* ── Settings modal: desktop two-column vs mobile bottom-sheet ── */
+.settings-mobile  { display: none; }
+.settings-desktop { display: flex; flex-direction: column; }
+
+@media (max-width: 640px) {
+  .settings-desktop { display: none !important; }
+  .settings-mobile  { display: flex; flex-direction: column; }
+}
+
+/* ── Dashboard tab bar: full label on desktop, short on mobile ── */
+.dash-tab-label-short { display: none !important; }
+.dash-tab-label-full  { display: inline !important; }
+
+@media (max-width: 400px) {
+  .dash-tab-label-full  { display: none !important; }
+  .dash-tab-label-short { display: inline !important; }
+}
+
+/* ── Dashboard stats grid: 3 columns desktop, 1 column mobile ── */
+.dash-stats-grid,
+.dash-goals-grid,
+.dash-analytics-grid,
+.dash-bottom-grid {
+  display: grid;
+}
+
+.dash-stats-grid     { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.dash-goals-grid     { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.dash-analytics-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.dash-bottom-grid    { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+@media (max-width: 640px) {
+  .dash-stats-grid,
+  .dash-goals-grid,
+  .dash-analytics-grid,
+  .dash-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Heatmap: annual view on desktop, quarter (3-month) view on mobile ── */
+.heatmap-mobile  { display: none; }
+.heatmap-desktop { display: block; }
+
+@media (max-width: 640px) {
+  .heatmap-mobile  { display: block; }
+  .heatmap-desktop { display: none; }
+}

@@ -667,26 +667,31 @@ function AppContent({ user, onSignOut, isGuest = false, onExitGuest, onFeedback 
           </div>
         </div>
 
-        <div style={{ padding: '24px 32px 48px' }}>
+        <div className="page-content">
           {/* Guest mode banner */}
           {isGuest && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 16px', marginBottom: 20,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 12px', marginBottom: 16,
               background: 'rgba(234,179,8,0.08)',
               border: '1px solid rgba(234,179,8,0.3)',
-              borderRadius: 10, flexWrap: 'wrap',
+              borderRadius: 10, flexWrap: 'nowrap',
             }}>
-              <span style={{ fontSize: 13, color: '#ca8a04', flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <UserCircle size={15} color="#ca8a04" style={{ flexShrink: 0 }} />
-                You're in <strong>Guest Mode</strong> — data is saved locally and will be lost if you clear your browser.
+              <UserCircle size={14} color="#ca8a04" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: '#ca8a04', fontWeight: 600, flexShrink: 0 }}>Guest Mode</span>
+              <span className="guest-banner-detail" style={{ fontSize: 12, color: '#a16207', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                — data is saved locally and will be lost if you clear your browser.
               </span>
               <button
                 onClick={onExitGuest}
-                className="btn btn-secondary"
-                style={{ fontSize: 12, padding: '4px 12px', flexShrink: 0 }}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '4px 10px', flexShrink: 0,
+                  borderRadius: 7, border: '1px solid rgba(234,179,8,0.4)',
+                  background: 'rgba(234,179,8,0.12)', color: '#ca8a04', cursor: 'pointer',
+                  marginLeft: 'auto',
+                }}
               >
-                Sign in to sync
+                Sign in
               </button>
             </div>
           )}

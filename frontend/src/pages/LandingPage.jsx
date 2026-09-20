@@ -95,50 +95,57 @@ export default function LandingPage({ onGetStarted, onGuestMode, onFeedback }) {
 
       {/* ── Liquid glass nav ─────────────────────────────────────────── */}
       <nav className={`lp-nav ${isDark ? 'lp-nav--dark' : 'lp-nav--light'}`} style={{
-        position: 'fixed', top: 16, left: 24, right: 24,
+        position: 'fixed', top: 12, left: 12, right: 12,
         zIndex: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px', height: 52,
+        padding: '0 14px', height: 52,
         borderRadius: 20,
         transition: 'background 0.3s',
       }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
-            <ClipboardList size={18} color="#fff" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.4)', flexShrink: 0 }}>
+            <ClipboardList size={17} color="#fff" />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: textPri }}>Daily Planner</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: textPri, whiteSpace: 'nowrap' }}>Daily Planner</span>
         </div>
 
         {/* Nav right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {/* Theme toggle — always shown */}
           <button onClick={toggleTheme} title="Toggle theme"
-            style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: `1px solid ${navBdr}`, borderRadius: 8, padding: 7, cursor: 'pointer', color: textSec, display: 'flex', alignItems: 'center', transition: 'background 0.15s' }}>
+            style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: `1px solid ${navBdr}`, borderRadius: 8, padding: 7, cursor: 'pointer', color: textSec, display: 'flex', alignItems: 'center', transition: 'background 0.15s', flexShrink: 0 }}>
             {themeMode === 'dark' ? <Moon size={15} /> : themeMode === 'light' ? <Sun size={15} /> : <SunMoon size={15} />}
           </button>
+          {/* Feedback — hidden on small screens */}
           <button onClick={onFeedback}
-            style={{ background: 'none', border: 'none', color: textSec, fontSize: 13, cursor: 'pointer', padding: '6px 10px', textDecoration: 'none', borderRadius: 8, transition: 'color 0.15s' }}
+            className="lp-nav-feedback"
+            style={{ background: 'none', border: 'none', color: textSec, fontSize: 13, cursor: 'pointer', padding: '6px 8px', borderRadius: 8, transition: 'color 0.15s', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
             onMouseLeave={e => e.currentTarget.style.color = textSec}>
             Feedback
           </button>
+          {/* Sign in — hidden on small screens */}
           <button onClick={onGetStarted}
-            style={{ background: 'none', border: 'none', color: textSec, fontSize: 13, cursor: 'pointer', padding: '6px 10px', borderRadius: 8, transition: 'color 0.15s' }}
+            className="lp-nav-signin"
+            style={{ background: 'none', border: 'none', color: textSec, fontSize: 13, cursor: 'pointer', padding: '6px 8px', borderRadius: 8, transition: 'color 0.15s', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.color = textPri}
             onMouseLeave={e => e.currentTarget.style.color = textSec}>
             Sign in
           </button>
+          {/* CTA — always shown, shorter text on mobile */}
           <button onClick={onGetStarted}
-            style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'filter 0.15s' }}
+            style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 10, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'filter 0.15s', whiteSpace: 'nowrap', flexShrink: 0 }}
             onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
             onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}>
-            Start planning free
+            <span className="lp-nav-cta-long">Start planning free</span>
+            <span className="lp-nav-cta-short">Get started</span>
           </button>
         </div>
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '120px 24px 60px', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '100px 20px 60px', position: 'relative', overflow: 'hidden' }}>
         {/* Background blobs */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
           <div style={{ position: 'absolute', width: 700, height: 700, borderRadius: '50%', background: isDark ? 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', top: '-20%', left: '-10%', animation: 'blob1 14s ease-in-out infinite alternate' }} />
@@ -204,7 +211,7 @@ export default function LandingPage({ onGetStarted, onGuestMode, onFeedback }) {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
           {FEATURES.map(f => (
             <div key={f.title} style={{ background: cardBg, border: `1px solid ${cardBdr}`, borderRadius: 20, padding: '28px 24px', backdropFilter: 'blur(12px)', transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = `${f.color}40`; e.currentTarget.style.boxShadow = `0 12px 32px ${f.color}18` }}
@@ -265,7 +272,7 @@ export default function LandingPage({ onGetStarted, onGuestMode, onFeedback }) {
 
       {/* ── Final CTA ───────────────────────────────────────────────────── */}
       <section style={{ padding: '80px 24px 40px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '56px 40px', background: cardBg, border: `1px solid ${cardBdr}`, borderRadius: 28, backdropFilter: 'blur(16px)', boxShadow: isDark ? '0 24px 60px rgba(0,0,0,0.4)' : '0 16px 48px rgba(99,102,241,0.12)' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: 'clamp(32px, 6vw, 56px) clamp(20px, 5vw, 40px)', background: cardBg, border: `1px solid ${cardBdr}`, borderRadius: 28, backdropFilter: 'blur(16px)', boxShadow: isDark ? '0 24px 60px rgba(0,0,0,0.4)' : '0 16px 48px rgba(99,102,241,0.12)' }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(99,102,241,0.4)' }}>
             <Zap size={26} color="#fff" />
           </div>
@@ -354,6 +361,16 @@ export default function LandingPage({ onGetStarted, onGuestMode, onFeedback }) {
             0 0 0 1px rgba(140,165,255,0.3),
             0 16px 56px rgba(80,100,220,0.18),
             0 4px 16px rgba(99,102,241,0.12);
+        }
+
+        /* ── Mobile nav: hide secondary items, shorten CTA ── */
+        .lp-nav-cta-short { display: none; }
+
+        @media (max-width: 520px) {
+          .lp-nav-feedback { display: none !important; }
+          .lp-nav-signin   { display: none !important; }
+          .lp-nav-cta-long  { display: none; }
+          .lp-nav-cta-short { display: inline; }
         }
       `}</style>
     </div>

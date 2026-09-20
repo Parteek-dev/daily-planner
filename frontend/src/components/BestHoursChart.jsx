@@ -20,9 +20,9 @@ export default function BestHoursChart({ analysis }) {
   }
 
   const periodLabels = {
-    morning: 'Morning',
-    afternoon: 'Afternoon',
-    evening: 'Evening',
+    morning: 'Morn',
+    afternoon: 'Aftn',
+    evening: 'Eve',
     night: 'Night',
   }
 
@@ -142,7 +142,7 @@ export default function BestHoursChart({ analysis }) {
       </div>
 
       {/* Period Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(64px, 1fr))', gap: 8 }}>
         {Object.entries(byPeriod).map(([period, data]) => {
           const Icon = periodIcons[period]
           const color = periodColors[period]

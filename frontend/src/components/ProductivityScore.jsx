@@ -24,9 +24,9 @@ export default function ProductivityScore({ score, breakdown, level, levelColor 
         Productivity Score
       </h3>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         {/* Score ring */}
-        <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0 }}>
+        <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0, margin: '0 auto' }}>
           <svg width="100" height="100" style={{ transform: 'rotate(-90deg)' }}>
             {/* Background circle */}
             <circle

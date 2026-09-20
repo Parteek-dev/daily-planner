@@ -74,8 +74,8 @@ export default function TimeTrackingStats({ stats, getTopicColor }) {
       </h3>
 
       {/* Accuracy Ring */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
-        <div style={{ position: 'relative', width: 80, height: 80 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0, margin: '0 auto' }}>
           <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
             <circle
               cx="40"
@@ -116,7 +116,7 @@ export default function TimeTrackingStats({ stats, getTopicColor }) {
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             {varianceLabel}
           </p>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               Estimated: <strong style={{ color: 'var(--text-primary)' }}>{formatDuration(totalEstimated)}</strong>
             </span>

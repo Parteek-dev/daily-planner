@@ -168,14 +168,14 @@ export default function CalendarPage({ progress }) {
         <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Plan and track your tasks by date</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, maxWidth: 1100 }}>
+      <div className="calendar-layout" style={{ maxWidth: 1100 }}>
         {/* Calendar Grid */}
         <div className="card-static">
           {/* Month nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button className="btn btn-ghost" onClick={prevMonth} style={{ padding: 8 }}>
-                <ChevronLeft size={20} />
+              <button className="btn btn-ghost" onClick={prevMonth} style={{ padding: 6 }}>
+                <ChevronLeft size={18} />
               </button>
             </div>
 
@@ -184,7 +184,7 @@ export default function CalendarPage({ progress }) {
               onClick={() => { setPickerYear(viewYear); setShowMonthPicker(p => !p) }}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 18, fontWeight: 600, color: 'var(--text-primary)',
+                fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '4px 10px', borderRadius: 8,
                 transition: 'background 0.15s',
@@ -194,7 +194,7 @@ export default function CalendarPage({ progress }) {
               title="Click to jump to any month"
             >
               {monthName}
-              <ChevronDown size={16} color="var(--text-muted)" />
+              <ChevronDown size={15} color="var(--text-muted)" />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -207,8 +207,8 @@ export default function CalendarPage({ progress }) {
                   Today
                 </button>
               )}
-              <button className="btn btn-ghost" onClick={nextMonth} style={{ padding: 8 }}>
-                <ChevronRight size={20} />
+              <button className="btn btn-ghost" onClick={nextMonth} style={{ padding: 6 }}>
+                <ChevronRight size={18} />
               </button>
             </div>
 
@@ -268,8 +268,9 @@ export default function CalendarPage({ progress }) {
           {/* Day headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 8 }}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', padding: 8 }}>
-                {d}
+              <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '6px 2px' }}>
+                {d.slice(0, 1)}
+                <span className="cal-day-full">{d.slice(1)}</span>
               </div>
             ))}
           </div>
@@ -278,7 +279,7 @@ export default function CalendarPage({ progress }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
             {calendarDays.map((cell, i) => {
               if (!cell.day) {
-                return <div key={i} style={{ minHeight: 60, padding: 4 }} />
+                return <div key={i} style={{ minHeight: 48, padding: 4 }} />
               }
               const isToday = cell.date === todayStr
               const isSelected = cell.date === selectedDate
@@ -290,12 +291,12 @@ export default function CalendarPage({ progress }) {
                   key={i}
                   onClick={() => setSelectedDate(cell.date)}
                   style={{
-                    minHeight: 60,
+                    minHeight: 48,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: 3,
                     borderRadius: 10,
                     border: isSelected ? '2px solid var(--accent-blue)' : '1px solid var(--border-primary)',
                     background: isSelected ? 'var(--accent-blue)' : isToday ? 'var(--bg-input)' : 'transparent',
@@ -306,18 +307,18 @@ export default function CalendarPage({ progress }) {
                     position: 'relative',
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>{cell.day}</span>
+                  <span style={{ fontSize: 13 }}>{cell.day}</span>
                   {counts && (counts.total > 0 || counts.hasNote) && (
                     <div style={{ display: 'flex', gap: 2 }}>
                       {counts.total > 0 && (
                         <div style={{
-                          width: 6, height: 6, borderRadius: '50%',
+                          width: 5, height: 5, borderRadius: '50%',
                           background: hasCompletedAll ? 'var(--accent-green)' : counts.completed > 0 ? 'var(--accent-orange)' : 'var(--text-muted)',
                         }} />
                       )}
                       {counts.hasNote && (
                         <div style={{
-                          width: 6, height: 6, borderRadius: '50%',
+                          width: 5, height: 5, borderRadius: '50%',
                           background: 'var(--accent-purple)',
                         }} />
                       )}

@@ -3,7 +3,7 @@ import {
   X, Palette, Bell, Database, Archive as ArchiveIcon, Info,
   Download, Upload, RotateCcw, Flame, Target, Zap, Clock,
   BarChart3, CheckCircle2, TrendingUp, Sun, Moon, SunMoon, Check,
-  Search, Calendar, Trash2, Settings, Compass,
+  Search, Calendar, Trash2, Settings, Compass, ChevronLeft,
 } from 'lucide-react'
 import { useTheme, ACCENT_COLORS } from '../hooks/useTheme.jsx'
 
@@ -26,53 +26,61 @@ export default function SettingsModal({
   archivedTasks, onRestore, onDeleteArchived, onArchiveOld, getTopicColor,
   onStartTour,
 }) {
-  const [activeTab, setActiveTab] = useState('appearance')
+  const [activeTab,    setActiveTab]    = useState('appearance')
+  const [mobileScreen, setMobileScreen] = useState('list') // 'list' | tab id
 
   if (!isOpen) return null
 
+  const goToTab = (id) => { setActiveTab(id); setMobileScreen(id) }
+  const goBack  = ()   => setMobileScreen('list')
+  const handleClose = () => { setMobileScreen('list'); onClose() }
+
+  const tabContent = (id) => {
+    switch (id) {
+      case 'appearance':    return <AppearanceTab />
+      case 'notifications': return <NotificationsTab notifications={notifications} />
+      case 'data':          return <DataTab onExport={onExport} onImport={onImport} onExportIcs={onExportIcs} onImportIcs={onImportIcs} onReset={() => { handleClose(); onReset() }} totalTasks={totalTasks} tasks={tasks} />
+      case 'archive':       return <ArchiveTab archivedTasks={archivedTasks} onRestore={onRestore} onDelete={onDeleteArchived} onArchiveOld={onArchiveOld} getTopicColor={getTopicColor} />
+      case 'about':         return <AboutTab onStartTour={() => { handleClose(); onStartTour?.() }} />
+      default:              return null
+    }
+  }
+
+  const currentTab = TABS.find(t => t.id === activeTab)
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
+
+      {/* ── DESKTOP: side-by-side two-column modal ── */}
       <div
-        className="modal-content"
+        className="settings-desktop"
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: 700, width: '95vw', maxHeight: '88vh',
-          padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
+          borderRadius: 20,
+          padding: 0, flexDirection: 'column', overflow: 'hidden',
+          boxShadow: 'var(--shadow-lg)',
+          animation: 'scaleIn 0.25s ease-out',
         }}
       >
         {/* Header */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '20px 24px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0,
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}>
             <Settings size={20} color="var(--text-secondary)" /> Settings
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
             <X size={20} />
           </button>
         </div>
-
         {/* Body */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-
           {/* Left tab list */}
-          <div style={{
-            width: 164, flexShrink: 0, borderRight: '1px solid var(--border-primary)',
-            padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2,
-          }}>
+          <div style={{ width: 164, flexShrink: 0, borderRight: '1px solid var(--border-primary)', padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  fontSize: 13, fontWeight: activeTab === id ? 600 : 400, textAlign: 'left', width: '100%',
-                  background: activeTab === id ? 'var(--accent-blue)' : 'transparent',
-                  color: activeTab === id ? 'white' : 'var(--text-secondary)',
-                  transition: 'all 0.15s',
-                }}
+              <button key={id} onClick={() => setActiveTab(id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: activeTab === id ? 600 : 400, textAlign: 'left', width: '100%', background: activeTab === id ? 'var(--accent-blue)' : 'transparent', color: activeTab === id ? 'white' : 'var(--text-secondary)', transition: 'all 0.15s' }}
                 onMouseEnter={e => { if (activeTab !== id) e.currentTarget.style.background = 'var(--bg-input)' }}
                 onMouseLeave={e => { if (activeTab !== id) e.currentTarget.style.background = 'transparent' }}
               >
@@ -80,15 +88,90 @@ export default function SettingsModal({
               </button>
             ))}
           </div>
-
           {/* Right content */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-            {activeTab === 'appearance'    && <AppearanceTab />}
-            {activeTab === 'notifications' && <NotificationsTab notifications={notifications} />}
-            {activeTab === 'data'          && <DataTab onExport={onExport} onImport={onImport} onExportIcs={onExportIcs} onImportIcs={onImportIcs} onReset={() => { onClose(); onReset() }} totalTasks={totalTasks} tasks={tasks} />}
-            {activeTab === 'archive'       && <ArchiveTab archivedTasks={archivedTasks} onRestore={onRestore} onDelete={onDeleteArchived} onArchiveOld={onArchiveOld} getTopicColor={getTopicColor} />}
-            {activeTab === 'about'         && <AboutTab onStartTour={() => { onClose(); onStartTour?.() }} />}
+            {tabContent(activeTab)}
           </div>
+        </div>
+      </div>
+
+      {/* ── MOBILE: full-screen bottom sheet with drill-down ── */}
+      <div
+        className="settings-mobile"
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: 'var(--bg-secondary)',
+          borderRadius: '20px 20px 0 0',
+          border: '1px solid var(--border-primary)',
+          borderBottom: 'none',
+          maxHeight: '92vh',
+          flexDirection: 'column',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.35)',
+          animation: 'slideUp 0.28s ease-out',
+        }}
+      >
+        {/* Pull handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border-secondary)' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 20px 12px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
+          {mobileScreen === 'list' ? (
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Settings size={18} color="var(--text-secondary)" /> Settings
+            </h2>
+          ) : (
+            <button onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-blue)', fontSize: 15, fontWeight: 600, padding: 0 }}>
+              <ChevronLeft size={20} color="var(--accent-blue)" />
+              <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {currentTab?.label}
+              </span>
+            </button>
+          )}
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {mobileScreen === 'list' ? (
+            /* Nav list — each tab as a full-width row */
+            <div style={{ padding: '8px 0' }}>
+              {TABS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => goToTab(id)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 20px', border: 'none', background: 'transparent',
+                    cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
+                    borderBottom: '1px solid var(--border-primary)',
+                  }}
+                  onTouchStart={e => e.currentTarget.style.background = 'var(--bg-input)'}
+                  onTouchEnd={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  {/* Icon badge */}
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={17} color="white" />
+                  </div>
+                  {/* Label */}
+                  <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</span>
+                  {/* Chevron */}
+                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1l5 5-5 5" stroke="var(--text-muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Tab content */
+            <div style={{ padding: '16px 20px 32px' }}>
+              {tabContent(mobileScreen)}
+            </div>
+          )}
         </div>
       </div>
     </div>

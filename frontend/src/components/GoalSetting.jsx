@@ -299,7 +299,7 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
               <div style={{ height: 1, background: 'var(--border-primary)' }} />
               {extraGoalsProgress.map(goal => (
                 <div key={goal.id}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 6, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 13, flexShrink: 0 }}>{GOAL_ICONS[goal.type]}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', minWidth: 0 }}>

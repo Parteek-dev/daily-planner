@@ -85,9 +85,9 @@ export default function TopicBalance({ analysis, getTopicColor }) {
       </h3>
 
       {/* Pie Chart and Stats */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
         {/* Pie Chart */}
-        <div style={{ width: 100, height: 100, flexShrink: 0 }}>
+        <div style={{ width: 100, height: 100, flexShrink: 0, margin: '0 auto' }}>
           <svg width="100" height="100" viewBox="0 0 100 100">
             {segments.map((segment, i) => (
               <path
@@ -124,7 +124,7 @@ export default function TopicBalance({ analysis, getTopicColor }) {
                 background: getTopicColor(topic.name),
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {topic.name}
               </span>
               <span style={{ fontSize: 11, fontWeight: 600, color: getTopicColor(topic.name) }}>
@@ -156,11 +156,11 @@ export default function TopicBalance({ analysis, getTopicColor }) {
                 borderLeft: `3px solid ${getTopicColor(topic.name)}`,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {topic.name}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
                   {topic.taskCount} tasks · {formatDuration(topic.totalTime)}
                 </span>
               </div>
