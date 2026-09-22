@@ -887,8 +887,7 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                         </span>
                       )}
                     </div>
-                    <p style={{
-                      fontSize: 15,
+                    <p className="task-title" style={{
                       fontWeight: 500,
                       color: task.completed ? 'var(--text-muted)' : 'var(--text-primary)',
                       textDecoration: task.completed ? 'line-through' : 'none',

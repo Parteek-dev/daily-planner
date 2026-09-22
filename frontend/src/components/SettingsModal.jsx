@@ -3,15 +3,18 @@ import {
   X, Palette, Bell, Database, Archive as ArchiveIcon, Info,
   Download, Upload, RotateCcw, Flame, Target, Zap, Clock,
   BarChart3, CheckCircle2, TrendingUp, Sun, Moon, SunMoon, Check,
-  Search, Calendar, Trash2, Settings, Compass, ChevronLeft,
+  Search, Calendar, Trash2, Settings, Compass, ChevronLeft, Sliders,
+  Type,
 } from 'lucide-react'
 import { useTheme, ACCENT_COLORS } from '../hooks/useTheme.jsx'
+import { useAccessibility, FONT_SIZES } from '../hooks/useAccessibility.jsx'
 import { fmtDuration } from '../lib/utils'
 
 // ── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'appearance',    label: 'Appearance',    icon: Palette      },
+  { id: 'accessibility', label: 'Accessibility', icon: Sliders },
   { id: 'notifications', label: 'Notifications', icon: Bell         },
   { id: 'data',          label: 'Data',          icon: Database     },
   { id: 'archive',       label: 'Archive',       icon: ArchiveIcon  },
@@ -39,6 +42,7 @@ export default function SettingsModal({
   const tabContent = (id) => {
     switch (id) {
       case 'appearance':    return <AppearanceTab />
+      case 'accessibility': return <AccessibilityTab />
       case 'notifications': return <NotificationsTab notifications={notifications} />
       case 'data':          return <DataTab onExport={onExport} onImport={onImport} onExportIcs={onExportIcs} onImportIcs={onImportIcs} onReset={() => { handleClose(); onReset() }} totalTasks={totalTasks} tasks={tasks} />
       case 'archive':       return <ArchiveTab archivedTasks={archivedTasks} onRestore={onRestore} onDelete={onDeleteArchived} onArchiveOld={onArchiveOld} getTopicColor={getTopicColor} />
@@ -279,6 +283,101 @@ function AppearanceTab() {
   )
 }
 
+// ── ACCESSIBILITY tab ─────────────────────────────────────────────────────────
+
+function AccessibilityTab() {
+  const { reduceMotion, setReduceMotion, fontSize, setFontSize } = useAccessibility()
+
+  return (
+    <div>
+      <SectionHeader title="Accessibility" subtitle="Make the app more comfortable to use" />
+
+      {/* Reduce Animations */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Reduce Animations
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, maxWidth: 320 }}>
+              Turns off slide-in, fade, and scale transitions. Helpful for motion sensitivity or distraction-free focus.
+            </p>
+          </div>
+          {/* Toggle switch */}
+          <button
+            type="button"
+            onClick={() => setReduceMotion(!reduceMotion)}
+            style={{
+              width: 44, height: 26, borderRadius: 13, border: 'none',
+              background: reduceMotion ? 'var(--accent-blue)' : 'var(--border-secondary)',
+              cursor: 'pointer', position: 'relative', flexShrink: 0, marginLeft: 16,
+              transition: 'background 0.2s ease',
+            }}
+            aria-checked={reduceMotion}
+            role="switch"
+            title={reduceMotion ? 'Animations reduced' : 'Animations on'}
+          >
+            <span style={{
+              position: 'absolute', top: 3, left: reduceMotion ? 21 : 3,
+              width: 20, height: 20, borderRadius: '50%', background: '#fff',
+              transition: 'left 0.2s ease',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+        </div>
+        {reduceMotion && (
+          <p style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 4 }}>
+            ✓ Animations are currently reduced
+          </p>
+        )}
+      </div>
+
+      {/* Font Size */}
+      <div>
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+          Task Title Size
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+          Adjusts the size of task titles in lists. Other UI elements stay the same.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {FONT_SIZES.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFontSize(f.id)}
+              style={{
+                padding: '12px 8px', borderRadius: 10, cursor: 'pointer',
+                border: `2px solid ${fontSize === f.id ? 'var(--accent-blue)' : 'var(--border-primary)'}`,
+                background: fontSize === f.id ? 'rgba(59,130,246,0.1)' : 'var(--bg-input)',
+                color: fontSize === f.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{
+                fontWeight: 700,
+                fontSize: f.id === 'small' ? 13 : f.id === 'medium' ? 16 : 20,
+                lineHeight: 1,
+              }}>Aa</span>
+              <span style={{ fontSize: 11, fontWeight: fontSize === f.id ? 600 : 400 }}>{f.label}</span>
+            </button>
+          ))}
+        </div>
+        {/* Live preview */}
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-input)', border: '1px solid var(--border-primary)' }}>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>Preview</p>
+          <p style={{
+            fontSize: `calc(14px * ${FONT_SIZES.find(f => f.id === fontSize)?.scale ?? '1'})`,
+            fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.4,
+          }}>
+            Review project documentation
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── NOTIFICATIONS tab ─────────────────────────────────────────────────────────
 
 function NotificationsTab({ notifications }) {
@@ -304,8 +403,24 @@ function NotificationsTab({ notifications }) {
             </div>
           </div>
           {isSupported && !isBlocked && (
-            <button onClick={toggleNotifications} className={`btn ${enabled ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '8px 16px', fontSize: 13 }}>
-              {enabled ? 'On' : 'Off'}
+            <button
+              onClick={toggleNotifications}
+              role="switch"
+              aria-checked={enabled}
+              title={enabled ? 'Turn off' : 'Turn on'}
+              style={{
+                width: 44, height: 26, borderRadius: 13, border: 'none',
+                background: enabled ? 'var(--accent-blue)' : 'var(--border-secondary)',
+                cursor: 'pointer', position: 'relative', flexShrink: 0,
+                transition: 'background 0.2s ease',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: enabled ? 21 : 3,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s ease',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+              }} />
             </button>
           )}
         </div>

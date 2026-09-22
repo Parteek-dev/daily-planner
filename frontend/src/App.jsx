@@ -32,6 +32,7 @@ import { useProgress }             from './hooks/useProgress'
 import { useAuth }                 from './hooks/useAuth'
 import { supabaseMisconfigured }   from './lib/supabase'
 import { ThemeProvider, useTheme } from './hooks/useTheme.jsx'
+import { AccessibilityProvider } from './hooks/useAccessibility.jsx'
 import { useKeyboardShortcuts }    from './hooks/useKeyboardShortcuts'
 import useNotifications            from './hooks/useNotifications'
 import usePomodoro                 from './hooks/usePomodoro'
@@ -910,5 +911,5 @@ function Root() {
 }
 
 export default function App() {
-  return <ThemeProvider><Root /></ThemeProvider>
+  return <ThemeProvider><AccessibilityProvider><Root /></AccessibilityProvider></ThemeProvider>
 }

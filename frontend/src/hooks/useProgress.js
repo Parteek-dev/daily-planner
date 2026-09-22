@@ -855,6 +855,13 @@ export function useProgress(userId) {
 
     let current = 0
     let check = new Date(today)
+
+    // If today has no completions, start the walk from yesterday —
+    // the streak isn't broken until the day has passed without any completion.
+    if (!completedDates.has(today)) {
+      check.setDate(check.getDate() - 1)
+    }
+
     while (true) {
       const ds = check.toISOString().split('T')[0]
       if (completedDates.has(ds)) { current++; check.setDate(check.getDate() - 1) }

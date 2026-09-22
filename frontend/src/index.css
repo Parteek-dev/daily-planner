@@ -1017,3 +1017,36 @@ body {
 .tour-dashboard-heatmap::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Reduce animations ── */
+/* In-app toggle */
+[data-reduce-motion="true"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* OS-level preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Font size — task titles scale via --a11y-font-scale ── */
+/* Applied wherever task titles appear in list rows */
+.task-title {
+  font-size: calc(14px * var(--a11y-font-scale, 1));
+}
+
+[data-font-size="small"]  .task-title { font-size: calc(14px * 0.9);  }
+[data-font-size="medium"] .task-title { font-size: calc(14px * 1);    }
+[data-font-size="large"]  .task-title { font-size: calc(14px * 1.15); }

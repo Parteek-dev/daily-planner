@@ -3,33 +3,13 @@
     {
       "name": "Default",
       "files": [
-        "frontend/src/components/QuickAdd.jsx",
         ".vscode/changelists.json",
-        "frontend/src/components/Heatmap.jsx",
-        "frontend/src/index.css",
-        "frontend/src/pages/Dashboard.jsx",
-        "frontend/src/components/AddTaskModal.jsx",
-        "frontend/src/lib/utils.js",
-        "frontend/src/pages/Today.jsx",
-        "frontend/src/components/IcsImportPreview.jsx",
-        "frontend/src/components/ArchiveManager.jsx",
-        "frontend/src/components/TimeBlockView.jsx",
         "frontend/src/components/SettingsModal.jsx",
-        "frontend/src/components/TaskTemplates.jsx",
-        "frontend/src/pages/Week.jsx",
-        "frontend/src/components/OverdueRolloverModal.jsx",
-        "frontend/src/pages/Calendar.jsx",
-        "frontend/src/components/CommandPalette.jsx",
-        "frontend/src/components/VoiceInput.jsx",
-        "frontend/src/components/TopicBalance.jsx",
-        "frontend/src/hooks/useProgress.js",
+        "frontend/src/index.css",
         "frontend/src/App.jsx",
-        "frontend/src/components/GoalSetting.jsx",
-        "frontend/src/components/LineChart.jsx",
-        "frontend/src/components/BestHoursChart.jsx",
-        "frontend/src/components/TimeTrackingStats.jsx",
-        "frontend/src/components/WeeklyReport.jsx",
-        "frontend/src/components/FocusMode.jsx"
+        "frontend/src/pages/Today.jsx",
+        "frontend/src/hooks/useAccessibility.jsx",
+        "frontend/src/hooks/useProgress.js"
       ]
     }
   ],
