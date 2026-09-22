@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Copy, Plus, Trash2, X, Clock, Tag, ChevronDown, ChevronRight } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 export default function TaskTemplates({ 
   templates, 
@@ -92,7 +93,7 @@ export default function TaskTemplates({
                         {template.topic}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Clock size={10} /> {template.duration}m
+                        <Clock size={10} /> {fmtDuration(template.duration)}
                       </span>
                     </div>
                     <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
@@ -170,7 +171,7 @@ export default function TaskTemplates({
                   {selectedTemplate.topic}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {selectedTemplate.duration}m
+                  {fmtDuration(selectedTemplate.duration)}
                 </span>
               </div>
               <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>

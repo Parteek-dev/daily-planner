@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { fmtDuration } from '../lib/utils'
 
 // ── Guest-mode localStorage adapter ──────────────────────────────────────────
 // All guest data lives under the 'guest_data' key as a single JSON blob.
@@ -1040,7 +1041,10 @@ export function useProgress(userId) {
   const getWeeklyReport = useCallback((weeksAgo = 0) => {
     const today = new Date()
     const start = new Date(today)
-    start.setDate(today.getDate() - today.getDay() - (weeksAgo * 7))
+    // Start on Monday (same as Week page) — getDay() returns 0=Sun, 1=Mon…
+    const dow = today.getDay()
+    const daysFromMonday = dow === 0 ? 6 : dow - 1
+    start.setDate(today.getDate() - daysFromMonday - (weeksAgo * 7))
     const end = new Date(start); end.setDate(start.getDate() + 6)
     const startStr = start.toISOString().split('T')[0]
     const endStr = end.toISOString().split('T')[0]
@@ -1186,7 +1190,7 @@ export function useProgress(userId) {
       const descParts = [
         task.description && `Description: ${task.description}`,
         `Topic: ${task.topic}`,
-        `Duration: ${task.duration}m`,
+        `Duration: ${fmtDuration(task.duration)}`,
         task.note && `Note: ${task.note}`,
       ].filter(Boolean).join('\\n')
 

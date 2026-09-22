@@ -6,10 +6,10 @@ export default function BestHoursChart({ analysis }) {
   const maxCompleted = Math.max(...hourlyData.map(h => h.completed), 1)
 
   const formatHour = (hour) => {
-    if (hour === 0) return '12a'
-    if (hour === 12) return '12p'
-    if (hour < 12) return `${hour}a`
-    return `${hour - 12}p`
+    if (hour === 0)  return '12 AM'
+    if (hour === 12) return '12 PM'
+    if (hour < 12)   return `${hour} AM`
+    return `${hour - 12} PM`
   }
 
   const periodIcons = {
@@ -20,9 +20,9 @@ export default function BestHoursChart({ analysis }) {
   }
 
   const periodLabels = {
-    morning: 'Morn',
-    afternoon: 'Aftn',
-    evening: 'Eve',
+    morning: 'Morning',
+    afternoon: 'Afternoon',
+    evening: 'Evening',
     night: 'Night',
   }
 
@@ -80,21 +80,28 @@ export default function BestHoursChart({ analysis }) {
         marginBottom: 20,
         textAlign: 'center',
       }}>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Most Productive</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Most Productive — all time</p>
         <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-purple)' }}>
           {mostProductivePeriod}
         </p>
         {peakHours.length > 0 && (
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-            Peak hours: {peakHours.map(h => formatHour(h)).join(', ')}
+            Peak: {peakHours.slice(0, 3).map(h => {
+              const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+              const ampm = h < 12 ? 'AM' : 'PM'
+              return `${h12} ${ampm}`
+            }).join(' · ')}
           </p>
         )}
       </div>
 
       {/* Hourly Chart */}
       <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 2 }}>
           Tasks Completed by Hour
+        </p>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+          Based on all completed tasks
         </p>
         <div style={{ 
           display: 'flex', 
@@ -127,17 +134,12 @@ export default function BestHoursChart({ analysis }) {
             )
           })}
         </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          marginTop: 4,
-          padding: '0 4px',
-        }}>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>12a</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>6a</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>12p</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>6p</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>11p</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, padding: '0 4px' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>12 AM</span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>6 AM</span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>12 PM</span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>6 PM</span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>11 PM</span>
         </div>
       </div>
 
@@ -160,7 +162,7 @@ export default function BestHoursChart({ analysis }) {
               <Icon size={16} color={color} style={{ marginBottom: 4 }} />
               <p style={{ fontSize: 16, fontWeight: 700, color }}>{data.count}</p>
               <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>{periodLabels[period]}</p>
-              <p style={{ fontSize: 10, color, fontWeight: 600 }}>{data.percent}%</p>
+              <p style={{ fontSize: 10, color, fontWeight: 600 }}>{data.percent}% of total</p>
             </div>
           )
         })}

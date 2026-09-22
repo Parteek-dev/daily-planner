@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Flag, Repeat, RotateCcw, InboxIcon, Sparkles, CalendarDays, ChevronDown } from 'lucide-react'
 import AddTaskModal from '../components/AddTaskModal'
+import { fmtDuration } from '../lib/utils'
 import { PRIORITY_CONFIG } from '../hooks/useProgress'
 
 function getMonday(date) {
@@ -327,7 +328,7 @@ export default function WeekPage({ progress }) {
                               color: getTopicColor(task.topic),
                             }}>{task.topic}</span>
                             <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <Clock size={10} /> {task.duration}m
+                              <Clock size={10} /> {fmtDuration(task.duration)}
                             </span>
                             {task.priority && <Flag size={10} color={PRIORITY_CONFIG[task.priority]?.color} />}
                             {task.recurrence && task.recurrence !== 'none' && <Repeat size={10} color="var(--accent-purple)" />}
@@ -447,7 +448,7 @@ export default function WeekPage({ progress }) {
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                               <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 4, background: `${getTopicColor(task.topic)}20`, color: getTopicColor(task.topic) }}>{task.topic}</span>
-                              <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 2 }}><Clock size={9} /> {task.duration}m</span>
+                              <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 2 }}><Clock size={9} /> {fmtDuration(task.duration)}</span>
                               {task.priority && <Flag size={9} color={PRIORITY_CONFIG[task.priority]?.color} />}
                               {task.recurrence && task.recurrence !== 'none' && <Repeat size={9} color="var(--accent-purple)" />}
                               {task.originalDate && task.originalDate !== task.date && <span title={`Moved from ${new Date(task.originalDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`} style={{ fontSize: 10, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 600, cursor: 'default' }}>↩</span>}

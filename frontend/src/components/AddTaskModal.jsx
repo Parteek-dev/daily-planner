@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Clock, Calendar, Tag, ListChecks, Repeat, Trash2, Copy, Flag, Link, AlertTriangle } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 const PRESET_COLORS = [
   '#3b82f6', '#22c55e', '#f97316', '#a855f7', 
@@ -31,6 +32,43 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Sat' },
 ]
 
+const DURATION_PRESETS = [
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+  { label: '45m', value: 45 },
+  { label: '1h',  value: 60 },
+  { label: '1.5h', value: 90 },
+  { label: '2h',  value: 120 },
+  { label: '3h',  value: 180 },
+]
+
+// Parse a human-friendly duration string into minutes
+// Accepts: "30", "30m", "1h", "1.5h", "90min", "1h 30m", "1h30"
+function parseDuration(str) {
+  if (!str) return null
+  const s = String(str).trim().toLowerCase()
+  // pure number → minutes
+  if (/^\d+$/.test(s)) return parseInt(s, 10)
+  // e.g. "1h 30m", "1h30m", "1h30"
+  const hm = s.match(/^(\d+(?:\.\d+)?)\s*h(?:r|ours?)?\s*(\d+)?\s*m?$/)
+  if (hm) {
+    const h = parseFloat(hm[1])
+    const m = hm[2] ? parseInt(hm[2], 10) : 0
+    return Math.round(h * 60 + m)
+  }
+  // e.g. "1.5h", "2h"
+  const hOnly = s.match(/^(\d+(?:\.\d+)?)\s*h(?:r|ours?)?$/)
+  if (hOnly) return Math.round(parseFloat(hOnly[1]) * 60)
+  // e.g. "30m", "90min"
+  const mOnly = s.match(/^(\d+(?:\.\d+)?)\s*m(?:in(?:utes?)?)?$/)
+  if (mOnly) return Math.round(parseFloat(mOnly[1]))
+  return null
+}
+
+function formatDurationDisplay(mins) {
+  return fmtDuration(mins) || ''
+}
+
 export default function AddTaskModal({ 
   isOpen, 
   onClose, 
@@ -46,10 +84,15 @@ export default function AddTaskModal({
   const [description, setDescription] = useState('')
   const [topic, setTopic] = useState('')
   const [duration, setDuration] = useState(30)
+  const [durationInput, setDurationInput] = useState('30m') // display string
   const [date, setDate] = useState('')
-  const [dueTime, setDueTime] = useState('') // New: due time
+  const [dueTime, setDueTime] = useState('')
   const [priority, setPriority] = useState(null)
   const [dependsOn, setDependsOn] = useState([])
+
+  // Validation
+  const [titleError, setTitleError] = useState(false)
+  const titleRef = useRef(null)
   
   // Subtasks
   const [subtasks, setSubtasks] = useState([])
@@ -78,6 +121,7 @@ export default function AddTaskModal({
         setDescription(editTask.description || '')
         setTopic(editTask.topic)
         setDuration(editTask.duration)
+        setDurationInput(formatDurationDisplay(editTask.duration))
         setDate(editTask.date)
         setDueTime(editTask.dueTime || '')
         setPriority(editTask.priority || null)
@@ -91,6 +135,7 @@ export default function AddTaskModal({
         setDescription('')
         setTopic(topics[0]?.name || '')
         setDuration(30)
+        setDurationInput('30m')
         setDate(defaultDate || new Date().toISOString().split('T')[0])
         setDueTime('')
         setPriority(null)
@@ -104,12 +149,18 @@ export default function AddTaskModal({
       setShowDependencies(false)
       setNewSubtask('')
       setShowDuplicateWarning(false)
+      setTitleError(false)
     }
   }, [isOpen, editTask, topics, defaultDate])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim()) {
+      setTitleError(true)
+      titleRef.current?.focus()
+      titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
 
     // Check for duplicate title on the same date (skip when editing the same task)
     const isDuplicate = availableTasks.some(t =>
@@ -210,16 +261,18 @@ export default function AddTaskModal({
         <form onSubmit={handleSubmit}>
           {/* Title */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Task Title *
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: titleError ? '#ef4444' : 'var(--text-secondary)', marginBottom: 6 }}>
+              Task Title *{titleError && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 400 }}>— required</span>}
             </label>
             <input
+              ref={titleRef}
               type="text"
-              className="input"
+              className={`input${titleError ? ' input-error' : ''}`}
               placeholder="What do you need to do?"
               value={title}
-              onChange={e => { setTitle(e.target.value); setShowDuplicateWarning(false) }}
+              onChange={e => { setTitle(e.target.value); if (e.target.value.trim()) setTitleError(false); setShowDuplicateWarning(false) }}
               autoFocus
+              style={titleError ? { borderColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,0.15)', animation: 'shake 0.35s ease' } : {}}
             />
           </div>
 
@@ -327,15 +380,27 @@ export default function AddTaskModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                <Clock size={14} /> Duration (min)
+                <Clock size={14} /> Duration
               </label>
               <input
-                type="number"
+                type="text"
                 className="input"
-                value={duration}
-                onChange={e => setDuration(e.target.value)}
-                min={1}
-                max={480}
+                value={durationInput}
+                onChange={e => {
+                  setDurationInput(e.target.value)
+                  const mins = parseDuration(e.target.value)
+                  if (mins && mins > 0) setDuration(mins)
+                }}
+                onBlur={() => {
+                  const mins = parseDuration(durationInput)
+                  if (mins && mins > 0) {
+                    setDuration(mins)
+                    setDurationInput(formatDurationDisplay(mins))
+                  } else {
+                    setDurationInput(formatDurationDisplay(duration))
+                  }
+                }}
+                placeholder="30m, 1h, 1.5h…"
               />
             </div>
             <div>

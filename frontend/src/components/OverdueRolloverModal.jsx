@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, CalendarClock, CheckSquare, Square, MoveRight, Trash2 } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 export default function OverdueRolloverModal({ tasks, onMoveSelected, onDismiss }) {
   const [selected, setSelected] = useState(new Set(tasks.map(t => t.id)))
@@ -110,7 +111,7 @@ export default function OverdueRolloverModal({ tasks, onMoveSelected, onDismiss 
                       {task.title}
                     </p>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-                      {task.topic} · {task.duration}m
+                      {task.topic} · {fmtDuration(task.duration)}
                     </p>
                   </div>
                 </div>

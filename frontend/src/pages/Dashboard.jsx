@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Flame, Trophy, Clock, CheckCircle2, TrendingUp, AlertCircle, X, PartyPopper, LayoutDashboard, BarChart2, Activity } from 'lucide-react'
-import ProgressRing from '../components/ProgressRing'
+import { fmtDuration } from '../lib/utils'
 import Heatmap from '../components/Heatmap'
 import ProductivityScore from '../components/ProductivityScore'
 import GoalSetting from '../components/GoalSetting'
@@ -136,60 +136,88 @@ export default function Dashboard({ progress }) {
         <div className="animate-fadeIn">
 
           {/* Top stats row */}
-          <div className="tour-dashboard-stats dash-stats-grid" style={{ gap: 16, marginBottom: 24 }}>
-            {/* Progress Ring */}
-            <div className="card-static" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-              <ProgressRing percent={dailyGoalProgress.percent} />
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-                {todayCompleted} / {dailyGoalProgress.target} today
-              </p>
+          {/* ── Unified stat bar ── */}
+          <div className="card-static tour-dashboard-stats" style={{ marginBottom: 24, padding: '20px 24px' }}>
+
+            {/* Top row: 4 stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 20 }}>
+
+              {/* Today's progress */}
+              <div style={{ paddingRight: 20, borderRight: '1px solid var(--border-primary)' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Today</p>
+                <p style={{ fontSize: 28, fontWeight: 700, color: dailyGoalProgress.percent === 100 ? 'var(--accent-green)' : 'var(--accent-blue)', lineHeight: 1 }}>
+                  {dailyGoalProgress.percent}%
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {todayCompleted} of {dailyGoalProgress.target} tasks
+                </p>
+              </div>
+
+              {/* Streak */}
+              <div style={{ paddingLeft: 20, paddingRight: 20, borderRight: '1px solid var(--border-primary)' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Streak</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <Flame size={18} color={streakData.current > 0 ? '#f97316' : 'var(--text-muted)'} />
+                  <p style={{ fontSize: 28, fontWeight: 700, color: streakData.current > 0 ? '#f97316' : 'var(--text-primary)', lineHeight: 1 }}>
+                    {streakData.current}
+                  </p>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Best: {streakData.best} days</p>
+              </div>
+
+              {/* Time invested */}
+              <div style={{ paddingLeft: 20, paddingRight: 20, borderRight: '1px solid var(--border-primary)' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Time Invested</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{hours}</p>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>h</span>
+                  {mins > 0 && <>
+                    <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{mins}</p>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>m</span>
+                  </>}
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>All time</p>
+              </div>
+
+              {/* Tasks completed */}
+              <div style={{ paddingLeft: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Completed</p>
+                <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  {progress.completedTasks ?? progress.tasks?.filter(t => t.completed).length ?? 0}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Tasks total</p>
+              </div>
             </div>
 
-            {/* Streak */}
-            <div className="card-static">
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Daily Streak</h3>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ flex: 1, textAlign: 'center', padding: 12, background: 'var(--bg-input)', borderRadius: 12 }}>
-                  <Flame size={24} color={streakData.current > 0 ? '#f97316' : 'var(--text-muted)'} style={{ marginBottom: 4 }} />
-                  <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{streakData.current}</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Current</p>
-                </div>
-                <div style={{ flex: 1, textAlign: 'center', padding: 12, background: 'var(--bg-input)', borderRadius: 12 }}>
-                  <Trophy size={24} color="#eab308" style={{ marginBottom: 4 }} />
-                  <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{streakData.best}</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Best</p>
-                </div>
+            {/* Progress bar */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Today's goal progress</span>
+                {!streakData.studiedToday && todayCompleted === 0 && (
+                  <span style={{ fontSize: 11, color: '#f97316', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlertCircle size={11} /> Complete a task to keep your streak
+                  </span>
+                )}
+                {streakData.studiedToday && streakData.current > 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Flame size={11} /> Streak protected today
+                  </span>
+                )}
               </div>
-              {!streakData.studiedToday && (
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(249,115,22,0.1)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.3)' }}>
-                  <AlertCircle size={14} color="#f97316" />
-                  <p style={{ fontSize: 12, color: '#fb923c' }}>Complete a task to keep your streak!</p>
-                </div>
-              )}
-              {streakData.studiedToday && streakData.current > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(34,197,94,0.1)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.3)' }}>
-                  <Flame size={14} color="#22c55e" />
-                  <p style={{ fontSize: 12, color: '#4ade80' }}>Streak protected for today!</p>
-                </div>
-              )}
-            </div>
-
-            {/* Time invested */}
-            <div className="card-static">
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Time Invested</h3>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                <Clock size={20} color="var(--accent-blue)" />
-                <span style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)' }}>{hours}</span>
-                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>hrs</span>
-                <span style={{ fontSize: 24, fontWeight: 600, color: 'var(--text-primary)' }}>{mins}</span>
-                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>min</span>
+              <div style={{ height: 6, borderRadius: 99, background: 'var(--border-primary)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${dailyGoalProgress.percent}%`,
+                  borderRadius: 99,
+                  background: dailyGoalProgress.percent === 100 ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-blue), #818cf8)',
+                  transition: 'width 0.5s ease',
+                }} />
               </div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Total time from completed tasks</p>
             </div>
           </div>
 
           {/* Heatmap */}
-          <div className="card-static tour-dashboard-heatmap" style={{ marginBottom: 24, overflowX: 'auto' }}>
+          <div className="card-static tour-dashboard-heatmap" style={{ marginBottom: 24, overflowX: 'auto', overflowY: 'hidden' }}>
             <Heatmap heatmapData={heatmapData} />
           </div>
 
@@ -255,57 +283,210 @@ export default function Dashboard({ progress }) {
 
       {/* ══════════════════════════════════════════════════════════════════
           TAB: ACTIVITY
-          Topics breakdown · Recent completions
+          Weekly strip · Topic cards · Timeline feed
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'activity' && (
         <div className="animate-fadeIn">
+
+          {/* ── This week at a glance ── */}
+          {(() => {
+            const today = new Date()
+            const todayStr = today.toISOString().split('T')[0]
+            // Build Mon–Sun of current week
+            const dow = today.getDay() // 0=Sun
+            const monday = new Date(today)
+            monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1))
+            const days = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date(monday)
+              d.setDate(monday.getDate() + i)
+              const ds = d.toISOString().split('T')[0]
+              const count = (progress.tasks || []).filter(t => t.completed && t.date === ds).length
+              const isToday = ds === todayStr
+              const isFuture = ds > todayStr
+              return { ds, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate(), count, isToday, isFuture }
+            })
+            const weekTotal = days.reduce((s, d) => s + d.count, 0)
+            const weekDone = days.filter(d => d.count > 0).length
+            return (
+              <div className="card-static" style={{ marginBottom: 16, padding: '16px 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Week</h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>{weekTotal}</strong> tasks · <strong style={{ color: 'var(--text-secondary)' }}>{weekDone}</strong> active days
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                  {days.map(d => (
+                    <div key={d.ds} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{d.label}</span>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 600,
+                        background: d.isFuture
+                          ? 'transparent'
+                          : d.count === 0
+                            ? 'var(--bg-input)'
+                            : d.count >= 5
+                              ? 'var(--accent-blue)'
+                              : d.count >= 3
+                                ? 'rgba(99,102,241,0.5)'
+                                : 'rgba(99,102,241,0.25)',
+                        color: d.count > 0 && !d.isFuture ? (d.count >= 5 ? '#fff' : 'var(--accent-blue)') : 'var(--text-muted)',
+                        border: d.isToday ? '2px solid var(--accent-blue)' : '1px solid transparent',
+                        opacity: d.isFuture ? 0.3 : 1,
+                      }}>
+                        {d.isFuture ? d.dayNum : d.count > 0 ? d.count : d.dayNum}
+                      </div>
+                      {d.count > 0 && (
+                        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                          {d.count} task{d.count !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* ── Bottom grid: topic cards + timeline ── */}
           <div className="tour-dashboard-bottom dash-bottom-grid" style={{ gap: 16 }}>
 
-            {/* Topic breakdown */}
+            {/* 14-day streak calendar */}
             <div className="card-static">
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Topics</h3>
-              {topTopics.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No tasks yet. Add some to see topic breakdown.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {topTopics.map(topic => (
-                    <div key={topic.name}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: getTopicColor(topic.name) }}>{topic.name}</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{topic.completed}/{topic.total}</span>
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Last 14 Days</h3>
+              {(() => {
+                const today = new Date()
+                const todayStr = today.toISOString().split('T')[0]
+                const days = Array.from({ length: 14 }, (_, i) => {
+                  const d = new Date(today)
+                  d.setDate(today.getDate() - (13 - i))
+                  const ds = d.toISOString().split('T')[0]
+                  const count = (progress.tasks || []).filter(t => t.completed && t.date === ds).length
+                  const totalForDay = (progress.tasks || []).filter(t => t.date === ds).length
+                  const pct = totalForDay > 0 ? Math.round((count / totalForDay) * 100) : 0
+                  return { ds, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate(), month: d.toLocaleDateString('en-US', { month: 'short' }), count, totalForDay, pct, isToday: ds === todayStr }
+                })
+                const activeDays = days.filter(d => d.count > 0).length
+                const totalDone = days.reduce((s, d) => s + d.count, 0)
+                return (
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 16 }}>
+                      {days.map(d => (
+                        <div key={d.ds} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{d.label}</span>
+                          <div
+                            title={`${d.month} ${d.dayNum}: ${d.count} completed${d.totalForDay > 0 ? `, ${d.pct}%` : ''}`}
+                            style={{
+                              width: '100%', aspectRatio: '1', borderRadius: 8,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 600,
+                              background: d.count === 0
+                                ? 'var(--bg-input)'
+                                : d.pct === 100
+                                  ? 'var(--accent-blue)'
+                                  : d.pct >= 60
+                                    ? 'rgba(99,102,241,0.6)'
+                                    : 'rgba(99,102,241,0.25)',
+                              color: d.count > 0
+                                ? (d.pct >= 60 ? '#fff' : 'var(--accent-blue)')
+                                : 'var(--text-muted)',
+                              color: d.count > 0
+                                ? (d.pct === 100 ? '#fff' : 'var(--accent-blue)')
+                                : 'var(--text-muted)',
+                              border: d.isToday ? '2px solid var(--accent-blue)' : '1px solid transparent',
+                            }}
+                          >
+                            {d.count > 0 ? d.count : d.dayNum}
+                          </div>
+                          {/* Month label on 1st of month */}
+                          {d.dayNum === 1 && (
+                            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{d.month}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Second row for days 8-14 label spacing already handled by grid */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--border-primary)' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{activeDays}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>Active days</p>
                       </div>
-                      <div className="progress-bar" style={{ height: 6 }}>
-                        <div className="progress-bar-fill" style={{ width: `${topic.percent}%`, background: getTopicColor(topic.name) }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{totalDone}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>Tasks done</p>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: 20, fontWeight: 700, color: activeDays >= 10 ? 'var(--accent-blue)' : activeDays >= 5 ? 'var(--accent-blue)' : 'var(--text-primary)', lineHeight: 1 }}>
+                          {activeDays === 0 ? '—' : `${Math.round((activeDays / 14) * 100)}%`}
+                        </p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                          {activeDays >= 10 ? 'Very consistent' : activeDays >= 5 ? 'Building habit' : activeDays > 0 ? 'Getting started' : 'No activity'}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                )
+              })()}
             </div>
 
-            {/* Recent completions */}
+            {/* Timeline feed */}
             <div className="card-static">
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Recent Completions</h3>
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Recent Activity</h3>
               {recentCompletedTasks.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No completed tasks yet. Get started!</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {recentCompletedTasks.slice(0, 10).map(task => (
-                    <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CheckCircle2 size={16} color="var(--accent-green)" />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {task.title}
-                        </p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          {task.completedAt && new Date(task.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          {task.topic && <span style={{ marginLeft: 6, color: getTopicColor(task.topic) }}>· {task.topic}</span>}
-                        </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No completed tasks yet.</p>
+              ) : (() => {
+                // Group by date
+                const todayStr = new Date().toISOString().split('T')[0]
+                const yestStr  = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })()
+                const groups   = {}
+                recentCompletedTasks.slice(0, 15).forEach(t => {
+                  const key = t.date || (t.completedAt ? t.completedAt.split('T')[0] : 'Unknown')
+                  if (!groups[key]) groups[key] = []
+                  groups[key].push(t)
+                })
+                const label = (ds) => {
+                  if (ds === todayStr) return 'Today'
+                  if (ds === yestStr)  return 'Yesterday'
+                  return new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                }
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {Object.entries(groups).sort(([a],[b]) => b.localeCompare(a)).map(([ds, dayTasks]) => (
+                      <div key={ds}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: ds === todayStr ? 'var(--accent-blue)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {label(ds)}
+                          </span>
+                          <div style={{ flex: 1, height: 1, background: 'var(--border-primary)' }} />
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dayTasks.length} task{dayTasks.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {dayTasks.map(task => (
+                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <CheckCircle2 size={14} color="var(--accent-green)" style={{ flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {task.title}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                {task.topic && (
+                                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, background: `${getTopicColor(task.topic)}20`, color: getTopicColor(task.topic), fontWeight: 600 }}>
+                                    {task.topic}
+                                  </span>
+                                )}
+                                {task.duration && (
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{fmtDuration(task.duration)}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

@@ -23,6 +23,7 @@ import WidgetView       from './components/WidgetView'
 import IcsImportPreview from './components/IcsImportPreview'
 import VoiceInput       from './components/VoiceInput'
 import TimerAlert       from './components/TimerAlert'
+import FocusMode        from './components/FocusMode'
 import OverdueRolloverModal from './components/OverdueRolloverModal'
 import Confetti         from './components/Confetti'
 import CommandPalette   from './components/CommandPalette'
@@ -205,25 +206,49 @@ function Sidebar({ progress, pomodoro, onPomodoro, onWidget, onVoice, onSettings
           transition: 'max-height 0.3s ease, opacity 0.2s ease, border 0.3s ease',
           pointerEvents: compact ? 'none' : 'auto',
         }}>
-          <div style={{ padding: 20 }}>
-            <div style={{ marginBottom: 16 }}>
+          <div style={{ padding: '20px 20px 16px' }}>
+            <div style={{ marginBottom: 14 }}>
               <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Daily Planner</h1>
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Track your progress</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }} className="sidebar-header-stats">
-              <div style={{ background: 'var(--bg-input)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-blue)' }}>{overallPercent}%</p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Done</p>
+
+            {/* ── Progress bar with stat labels ── */}
+            <div className="sidebar-header-stats">
+              {/* Labels row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)' }}>
+                  {todayTotal > 0 ? `${Math.round((todayCompleted / todayTotal) * 100)}%` : '—'} today
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Flame size={11} color="var(--accent-orange)" />
+                    <span style={{ fontWeight: 600, color: 'var(--accent-orange)' }}>{streakData.current}</span>
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: todayCompleted === todayTotal && todayTotal > 0 ? 'var(--accent-green)' : 'var(--text-secondary)' }}>
+                    {todayTotal === 0 ? 'no tasks' : todayCompleted === todayTotal ? 'all done' : `${todayTotal - todayCompleted} left`}
+                  </span>
+                </div>
               </div>
-              <div style={{ background: 'var(--bg-input)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  <Flame size={14} />{streakData.current}
-                </p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Streak</p>
-              </div>
-              <div style={{ background: 'var(--bg-input)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-green)' }}>{todayCompleted}/{todayTotal}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Today</p>
+              {/* Bar */}
+              <div style={{
+                height: 6, borderRadius: 99,
+                background: 'var(--border-primary)',
+                overflow: 'hidden',
+              }}>
+                {(() => {
+                  const pct = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0
+                  return (
+                    <div style={{
+                      height: '100%',
+                      width: `${pct}%`,
+                      borderRadius: 99,
+                      background: pct === 100
+                        ? 'var(--accent-green)'
+                        : 'linear-gradient(90deg, var(--accent-blue), #818cf8)',
+                      transition: 'width 0.4s ease',
+                    }} />
+                  )
+                })()}
               </div>
             </div>
           </div>
@@ -426,9 +451,10 @@ function AppContent({ user, onSignOut, isGuest = false, onExitGuest, onFeedback 
   const [showTour,      setShowTour]      = useState(false)
   const [icsPreview,    setIcsPreview]    = useState(null) // { tasks, calendarCategories, ... }
 
-  // Ref so Today.jsx can register a "get current focused task" callback
   const getFocusedTaskRef = useRef(null)
-  const [pomodoroTask, setPomodoroTask] = useState(null)
+  const [pomodoroTask,   setPomodoroTask]   = useState(null)
+  const [globalFocusTask, setGlobalFocusTask] = useState(null)   // persists across routes
+  const [focusMinimized,  setFocusMinimized]  = useState(false)
   const toastTimerRef = useRef(null)
   const undoRef = useRef(null)
   undoRef.current = progress.undo  // always up-to-date, no stale closure
@@ -697,7 +723,7 @@ function AppContent({ user, onSignOut, isGuest = false, onExitGuest, onFeedback 
           )}
           <Routes>
             <Route path="/"         element={<Dashboard   progress={progress} />} />
-            <Route path="/today"    element={<TodayPage    progress={{ ...progress, toggleTaskComplete: handleToggleTaskComplete, deleteTask: handleDeleteTask }} getFocusedTaskRef={getFocusedTaskRef} />} />
+            <Route path="/today"    element={<TodayPage    progress={{ ...progress, toggleTaskComplete: handleToggleTaskComplete, deleteTask: handleDeleteTask }} getFocusedTaskRef={getFocusedTaskRef} onStartFocus={(task) => { setGlobalFocusTask(task); setFocusMinimized(false) }} globalFocusTask={globalFocusTask} />} />
             <Route path="/week"     element={<WeekPage     progress={{ ...progress, toggleTaskComplete: handleToggleTaskComplete, deleteTask: handleDeleteTask }} />} />
             <Route path="/calendar" element={<CalendarPage progress={{ ...progress, toggleTaskComplete: handleToggleTaskComplete, deleteTask: handleDeleteTask }} />} />
           </Routes>
@@ -705,6 +731,29 @@ function AppContent({ user, onSignOut, isGuest = false, onExitGuest, onFeedback 
       </main>
 
       {showReset && <ResetModal onConfirm={handleReset} onCancel={() => setShowReset(false)} />}
+
+      {/* Global persistent Focus Mode — survives route changes */}
+      {globalFocusTask && (
+        <FocusMode
+          isOpen={true}
+          minimized={focusMinimized}
+          onMinimize={() => setFocusMinimized(true)}
+          onExpand={() => setFocusMinimized(false)}
+          onClose={() => { setGlobalFocusTask(null); setFocusMinimized(false) }}
+          task={globalFocusTask}
+          onToggleComplete={(taskId) => {
+            progress.toggleTaskComplete(taskId)
+            setGlobalFocusTask(prev => prev ? { ...prev, completed: !prev.completed } : null)
+          }}
+          onSetActualDuration={progress.setActualDuration}
+          onNextTask={() => {
+            const todayIncomplete = progress.todayTasks?.filter(t => !t.completed && t.id !== globalFocusTask?.id)
+            if (todayIncomplete?.length > 0) setGlobalFocusTask(todayIncomplete[0])
+            else setGlobalFocusTask(null)
+          }}
+          hasNextTask={!!(progress.todayTasks?.filter(t => !t.completed && t.id !== globalFocusTask?.id).length)}
+        />
+      )}
 
       {showRollover && overdueTasks.length > 0 && (
         <OverdueRolloverModal

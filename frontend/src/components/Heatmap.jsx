@@ -29,10 +29,9 @@ function getColor(count) {
 }
 
 function dateStr(date) {
-  return date.toLocaleDateString('en-CA') // YYYY-MM-DD in local time
+  return date.toLocaleDateString('en-CA')
 }
 
-// Build month labels for a slice of weeks
 function buildMonthLabels(weeks) {
   const labels = []
   let lastMonth = -1
@@ -49,12 +48,12 @@ function buildMonthLabels(weeks) {
   return labels
 }
 
-// ─── Grid renderer (shared between mobile and desktop) ───────────────────────
+// ─── Grid renderer ────────────────────────────────────────────────────────────
 
 function HeatmapGrid({ weeks, monthLabels, onCellClick, onMouseEnter, onMouseLeave }) {
   return (
     <>
-      {/* Month labels row */}
+      {/* Month labels */}
       <div style={{ display: 'flex', marginLeft: DOW_WIDTH, marginBottom: 4, position: 'relative', height: 14 }}>
         {monthLabels.map(({ weekIndex, month }) => (
           <span
@@ -87,15 +86,11 @@ function HeatmapGrid({ weeks, monthLabels, onCellClick, onMouseEnter, onMouseLea
         </div>
 
         {/* Week columns */}
-        <div style={{ paddingBottom: 2, paddingTop: 2 }}>
+        <div style={{ paddingBottom: 2, paddingTop: 2, overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: GAP }}>
             {weeks.map((week, wi) => (
               <div key={wi} style={{ flexShrink: 0 }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateRows: `repeat(7, ${CELL}px)`,
-                  gap: GAP,
-                }}>
+                <div style={{ display: 'grid', gridTemplateRows: `repeat(7, ${CELL}px)`, gap: GAP }}>
                   {week.map((day, di) => (
                     <div
                       key={di}
@@ -113,7 +108,7 @@ function HeatmapGrid({ weeks, monthLabels, onCellClick, onMouseEnter, onMouseLea
                         transition: 'transform 0.1s',
                         flexShrink: 0,
                       }}
-                      onMouseOver={e => { if (day?.count > 0) e.currentTarget.style.transform = 'scale(1.3)' }}
+                      onMouseOver={e => { if (day?.count > 0) e.currentTarget.style.transform = 'scale(1.15)' }}
                       onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)' }}
                     />
                   ))}
@@ -130,11 +125,10 @@ function HeatmapGrid({ weeks, monthLabels, onCellClick, onMouseEnter, onMouseLea
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Heatmap({ heatmapData }) {
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const [tooltip, setTooltip] = useState(null)
-  const today     = useMemo(() => new Date(), [])
+  const today    = useMemo(() => new Date(), [])
 
-  // Build full 52-week dataset once — both views share this data
   const { allWeeks, stats } = useMemo(() => {
     const dataMap = {}
     heatmapData.forEach(d => { dataMap[d.date] = d.count })
@@ -163,7 +157,6 @@ export default function Heatmap({ heatmapData }) {
       allWeeks.push(week)
     }
 
-    // Stats over all 52 weeks
     const allDays        = allWeeks.flat().filter(Boolean)
     const totalCompleted = allDays.reduce((s, d) => s + d.count, 0)
     const activeDays     = allDays.filter(d => d.count > 0).length
@@ -173,9 +166,8 @@ export default function Heatmap({ heatmapData }) {
     return { allWeeks, stats: { totalCompleted, activeDays, bestDay, avg } }
   }, [heatmapData, today])
 
-  // Desktop: all 52 weeks  |  Mobile: last 13 weeks (quarter / ~3 months)
-  const desktopWeeks      = allWeeks
-  const mobileWeeks       = allWeeks.slice(-13)
+  const desktopWeeks       = allWeeks
+  const mobileWeeks        = allWeeks.slice(-13)
   const desktopMonthLabels = buildMonthLabels(desktopWeeks)
   const mobileMonthLabels  = buildMonthLabels(mobileWeeks)
 

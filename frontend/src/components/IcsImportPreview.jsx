@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { X, Calendar, CheckSquare, Square, AlertTriangle, Clock, Flag, Repeat, ArrowRight } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 const PRIORITY_COLORS = { high: '#ef4444', medium: '#f97316', low: '#22c55e' }
 
@@ -186,7 +187,7 @@ export default function IcsImportPreview({
                       </span>
                     )}
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {task.duration}m
+                      {fmtDuration(task.duration)}
                     </span>
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,

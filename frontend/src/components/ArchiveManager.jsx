@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Archive, RotateCcw, Trash2, Calendar, Clock, Search, X } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 export default function ArchiveManager({ 
   isOpen, 
@@ -145,7 +146,7 @@ export default function ArchiveManager({
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Clock size={12} />
-                          {task.duration}m
+                          {fmtDuration(task.duration)}
                         </span>
                         {task.archivedAt && (
                           <span style={{ color: 'var(--text-muted)' }}>

@@ -30,8 +30,8 @@
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   --gradient-glow:    0 4px 16px rgba(99,102,241,0.4);
 
-  /* Page background gradient — matches login dark */
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #0f172a 100%);
+  /* Page background — flat dark, no gradient bleed */
+  --bg-gradient: #0f172a;
 
   /* Shadows matching login card depth */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.35);
@@ -44,15 +44,15 @@
 }
 
 [data-theme="light"] {
-  /* Light theme — matches login light card exactly */
-  --bg-primary:    #eef2ff;
-  --bg-secondary:  #f5f7ff;
-  --bg-card:       rgba(255,255,255,0.92);
-  --bg-card-hover: #f5f7ff;
-  --bg-input:      #f0f4ff;
+  /* Light theme — warm neutral */
+  --bg-primary:    #f5f5f4;
+  --bg-secondary:  #fafaf9;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #f5f5f4;
+  --bg-input:      #f5f5f4;
 
-  --border-primary:   rgba(99,102,241,0.12);
-  --border-secondary: rgba(99,102,241,0.2);
+  --border-primary:   rgba(0,0,0,0.08);
+  --border-secondary: rgba(0,0,0,0.14);
   --border-accent:    #6366f1;
 
   --text-primary:   #0f172a;
@@ -69,13 +69,13 @@
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   --gradient-glow:    0 4px 16px rgba(99,102,241,0.25);
 
-  /* Page background gradient — matches login light */
-  --bg-gradient: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 45%, #f0f4ff 100%);
+  /* Page background — warm neutral, no gradient */
+  --bg-gradient: #f5f5f4;
 
-  /* Shadows matching login light card: indigo-tinted */
-  --shadow-sm: 0 2px 8px rgba(99,102,241,0.08);
-  --shadow-md: 0 8px 24px rgba(99,102,241,0.12);
-  --shadow-lg: 0 16px 48px rgba(99,102,241,0.16);
+  /* Subtle neutral shadows */
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -273,6 +273,26 @@ body {
   outline: none;
   border-color: var(--accent-blue);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.input.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+  animation: shake 0.35s ease;
+}
+
+@keyframes shake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-6px); }
+  40%  { transform: translateX(6px); }
+  60%  { transform: translateX(-4px); }
+  80%  { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .input::placeholder {
@@ -977,4 +997,23 @@ body {
 @media (max-width: 640px) {
   .heatmap-mobile  { display: block; }
   .heatmap-desktop { display: none; }
+}
+
+/* ── Heatmap card scrollbar — thin and themed ── */
+.tour-dashboard-heatmap {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+}
+.tour-dashboard-heatmap::-webkit-scrollbar {
+  height: 5px;
+}
+.tour-dashboard-heatmap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tour-dashboard-heatmap::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 99px;
+}
+.tour-dashboard-heatmap::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

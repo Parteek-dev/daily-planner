@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Zap, Plus, Clock, Calendar, Tag, Flag, AlertTriangle } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Zap, Plus, Clock, Calendar, Tag, Flag, AlertTriangle, ChevronDown, X } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 // Natural language parser for quick task input
 function parseQuickInput(input, topics = []) {
@@ -135,13 +137,84 @@ function getNextDayOfWeek(dayOfWeek) {
   return target.toISOString().split('T')[0]
 }
 
+// Quick-select duration options
+const QUICK_DURATIONS = [
+  { label: '5m',   value: 5 },
+  { label: '15m',  value: 15 },
+  { label: '30m',  value: 30 },
+  { label: '45m',  value: 45 },
+  { label: '1h',   value: 60 },
+  { label: '1.5h', value: 90 },
+  { label: '2h',   value: 120 },
+  { label: '3h',   value: 180 },
+]
+
+// Quick-select time options
+const QUICK_TIMES = [
+  { label: '9 AM',  value: '09:00' },
+  { label: '10 AM', value: '10:00' },
+  { label: '12 PM', value: '12:00' },
+  { label: '2 PM',  value: '14:00' },
+  { label: '3 PM',  value: '15:00' },
+  { label: '5 PM',  value: '17:00' },
+  { label: '6 PM',  value: '18:00' },
+  { label: '8 PM',  value: '20:00' },
+]
+
 export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
   const [input, setInput] = useState('')
   const [preview, setPreview] = useState(null)
   const [isFocused, setIsFocused] = useState(false)
   const [showDupWarning, setShowDupWarning] = useState(false)
   const [pendingTask, setPendingTask] = useState(null)
+
+  // Quick-select overrides (take precedence over parsed values)
+  const [dateOverride, setDateOverride] = useState(null)
+  const [timeOverride, setTimeOverride] = useState(undefined)
+  const [durationOverride, setDurationOverride] = useState(null) // minutes | null
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showDurationDropdown, setShowDurationDropdown] = useState(false)
+  const [customTimeInput, setCustomTimeInput] = useState('')
+
   const inputRef = useRef(null)
+  const dateBtnRef = useRef(null)
+  const timeBtnRef = useRef(null)
+  const durationBtnRef = useRef(null)
+
+  // Portal dropdown positions
+  const [datePickerPos, setDatePickerPos] = useState(null)
+  const [timeDropdownPos, setTimeDropdownPos] = useState(null)
+  const [durationDropdownPos, setDurationDropdownPos] = useState(null)
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (showDatePicker) {
+        const datePortal = document.getElementById('qa-date-portal')
+        if (dateBtnRef.current && !dateBtnRef.current.contains(e.target) &&
+            datePortal && !datePortal.contains(e.target)) {
+          setShowDatePicker(false)
+        }
+      }
+      if (showTimeDropdown) {
+        const timePortal = document.getElementById('qa-time-portal')
+        if (timeBtnRef.current && !timeBtnRef.current.contains(e.target) &&
+            timePortal && !timePortal.contains(e.target)) {
+          setShowTimeDropdown(false)
+        }
+      }
+      if (showDurationDropdown) {
+        const durPortal = document.getElementById('qa-duration-portal')
+        if (durationBtnRef.current && !durationBtnRef.current.contains(e.target) &&
+            durPortal && !durPortal.contains(e.target)) {
+          setShowDurationDropdown(false)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showDatePicker, showTimeDropdown, showDurationDropdown])
 
   // Parse input on change
   useEffect(() => {
@@ -159,13 +232,18 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
     e?.preventDefault()
     if (!preview?.title) return
 
+    const today = new Date().toISOString().split('T')[0]
+    const resolvedDate = dateOverride ?? preview.date
+    const resolvedTime = timeOverride !== undefined ? timeOverride : preview.dueTime
+    const resolvedDuration = durationOverride ?? preview.duration
+
     const taskData = {
       title: preview.title,
       description: '',
       topic: preview.topic || topics[0]?.name || 'Personal',
-      duration: preview.duration,
-      date: preview.date,
-      dueTime: preview.dueTime,
+      duration: resolvedDuration,
+      date: resolvedDate,
+      dueTime: resolvedTime,
       priority: preview.priority,
       subtasks: [],
       recurrence: 'none',
@@ -187,6 +265,10 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
     setPreview(null)
     setShowDupWarning(false)
     setPendingTask(null)
+    setDateOverride(null)
+    setTimeOverride(undefined)
+    setDurationOverride(null)
+    setCustomTimeInput('')
   }
 
   const confirmAddAnyway = () => {
@@ -195,6 +277,10 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
     setPreview(null)
     setShowDupWarning(false)
     setPendingTask(null)
+    setDateOverride(null)
+    setTimeOverride(undefined)
+    setDurationOverride(null)
+    setCustomTimeInput('')
   }
 
   const cancelDup = () => {
@@ -207,6 +293,86 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
       e.preventDefault()
       handleSubmit()
     }
+  }
+
+  // ── Date quick-select helpers ──────────────────────────────────────────
+  const todayStr = new Date().toISOString().split('T')[0]
+  const tomorrowStr = (() => {
+    const d = new Date(); d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
+  })()
+
+  // Cycle through Today → Tomorrow → open date picker
+  const handleDateChipClick = () => {
+    const current = dateOverride ?? preview?.date ?? todayStr
+    if (current === todayStr) {
+      setDateOverride(tomorrowStr)
+    } else if (current === tomorrowStr) {
+      if (dateBtnRef.current) {
+        const r = dateBtnRef.current.getBoundingClientRect()
+        setDatePickerPos({ top: r.bottom + 6, left: r.left })
+      }
+      setShowDatePicker(true)
+      setShowTimeDropdown(false)
+    } else {
+      if (dateBtnRef.current) {
+        const r = dateBtnRef.current.getBoundingClientRect()
+        setDatePickerPos({ top: r.bottom + 6, left: r.left })
+      }
+      setShowDatePicker(true)
+      setShowTimeDropdown(false)
+    }
+  }
+
+  const handleDatePickerChange = (e) => {
+    setDateOverride(e.target.value)
+    setShowDatePicker(false)
+  }
+
+  // ── Time quick-select helpers ──────────────────────────────────────────
+  const handleTimeChipClick = (e) => {
+    e.stopPropagation()
+    if (!showTimeDropdown && timeBtnRef.current) {
+      const r = timeBtnRef.current.getBoundingClientRect()
+      setTimeDropdownPos({ top: r.bottom + 6, left: r.right - 170 })
+    }
+    setShowTimeDropdown(prev => !prev)
+    setShowDatePicker(false)
+  }
+
+  const selectQuickTime = (value) => {
+    setTimeOverride(value)
+    setShowTimeDropdown(false)
+    setCustomTimeInput('')
+  }
+
+  const clearTime = (e) => {
+    e.stopPropagation()
+    setTimeOverride(null)
+    setShowTimeDropdown(false)
+  }
+
+  const handleCustomTimeInput = (e) => {
+    const val = e.target.value
+    setCustomTimeInput(val)
+    if (/^\d{1,2}:\d{2}$/.test(val)) {
+      const [h, m] = val.split(':').map(Number)
+      if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+        setTimeOverride(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
+      }
+    }
+  }
+
+  // ── Duration quick-select helpers ─────────────────────────────────────
+  const handleDurationChipClick = (e) => {
+    e.stopPropagation()
+    if (!showDurationDropdown && durationBtnRef.current) {
+      const r = durationBtnRef.current.getBoundingClientRect()
+      setDurationDropdownPos({ top: r.bottom + 6, left: r.right - 170 })
+    }
+    setShowDurationDropdown(prev => !prev)
+    setShowDatePicker(false)
+    setShowTimeDropdown(false)
   }
 
   const formatDate = (dateStr) => {
@@ -284,19 +450,20 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
         {/* Preview */}
         {preview?.title && (
           <div style={{ 
-            padding: '12px 16px', 
+            padding: '10px 16px', 
             borderTop: '1px solid var(--border-primary)',
             background: 'var(--bg-input)',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
             flexWrap: 'wrap',
+            borderRadius: showDupWarning ? '0' : '0 0 16px 16px',
           }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {preview.title}
             </span>
             
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
               {preview.topic && (
                 <span style={{ 
                   display: 'flex',
@@ -312,49 +479,234 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
                   {preview.topic}
                 </span>
               )}
+
+              {/* ── Clickable date chip ── */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={dateBtnRef}
+                  type="button"
+                  onClick={handleDateChipClick}
+                  title="Click to change date"
+                  style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 10px',
+                    borderRadius: 12,
+                    fontSize: 11,
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s, border-color 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--accent-blue)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-primary)' }}
+                >
+                  <Calendar size={10} />
+                  {formatDate(dateOverride ?? preview.date)}
+                </button>
+                {showDatePicker && datePickerPos && createPortal(
+                  <div
+                    id="qa-date-portal"
+                    style={{
+                      position: 'fixed',
+                      top: datePickerPos.top,
+                      left: datePickerPos.left,
+                      zIndex: 9999,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 10,
+                      padding: 10,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      minWidth: 180,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, paddingBottom: 2 }}>Pick a date</span>
+                    {[
+                      { label: 'Today', value: todayStr },
+                      { label: 'Tomorrow', value: tomorrowStr },
+                    ].map(opt => (
+                      <button key={opt.value} type="button"
+                        onClick={() => { setDateOverride(opt.value); setShowDatePicker(false) }}
+                        style={{
+                          padding: '5px 10px', borderRadius: 8, fontSize: 12, textAlign: 'left',
+                          background: (dateOverride ?? preview.date) === opt.value ? 'var(--accent-blue)' : 'transparent',
+                          color: (dateOverride ?? preview.date) === opt.value ? '#fff' : 'var(--text-primary)',
+                          border: 'none', cursor: 'pointer', fontWeight: 500,
+                        }}
+                      >{opt.label}</button>
+                    ))}
+                    <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0' }} />
+                    <input
+                      type="date"
+                      value={dateOverride ?? preview.date}
+                      onChange={handleDatePickerChange}
+                      style={{
+                        fontSize: 12, padding: '5px 8px', borderRadius: 8,
+                        background: 'var(--bg-input)', border: '1px solid var(--border-primary)',
+                        color: 'var(--text-primary)', outline: 'none', width: '100%',
+                      }}
+                    />
+                  </div>,
+                  document.body
+                )}
+              </div>
+
+              {/* ── Clickable time chip ── */}
+              <div style={{ position: 'relative' }}>
+                {(() => {
+                  const resolvedTime = timeOverride !== undefined ? timeOverride : preview.dueTime
+                  return (
+                    <>
+                      <button
+                        ref={timeBtnRef}
+                        type="button"
+                        onClick={handleTimeChipClick}
+                        title="Click to set time"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px', borderRadius: 12, fontSize: 11,
+                          background: resolvedTime ? 'rgba(249,115,22,0.15)' : 'var(--bg-secondary)',
+                          color: resolvedTime ? 'var(--accent-orange)' : 'var(--text-muted)',
+                          border: `1px solid ${resolvedTime ? 'rgba(249,115,22,0.35)' : 'var(--border-primary)'}`,
+                          cursor: 'pointer', transition: 'background 0.12s',
+                        }}
+                      >
+                        <Clock size={10} />
+                        {resolvedTime ? formatTime(resolvedTime) : 'Add time'}
+                        <ChevronDown size={9} style={{ marginLeft: 1 }} />
+                      </button>
+                      {resolvedTime && (
+                        <button
+                          type="button"
+                          onClick={clearTime}
+                          title="Remove time"
+                          style={{
+                            position: 'absolute', top: -4, right: -4,
+                            width: 14, height: 14, borderRadius: '50%',
+                            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', padding: 0, color: 'var(--text-muted)',
+                          }}
+                        >
+                          <X size={8} />
+                        </button>
+                      )}
+                    </>
+                  )
+                })()}
+                {showTimeDropdown && timeDropdownPos && createPortal(
+                  <div
+                    id="qa-time-portal"
+                    style={{
+                      position: 'fixed',
+                      top: timeDropdownPos.top,
+                      left: Math.max(8, timeDropdownPos.left),
+                      zIndex: 9999,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 10,
+                      padding: 10,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 4,
+                      minWidth: 170,
+                    }}
+                  >
+                    {QUICK_TIMES.map(t => (
+                      <button key={t.value} type="button"
+                        onClick={() => selectQuickTime(t.value)}
+                        style={{
+                          padding: '5px 8px', borderRadius: 8, fontSize: 12, textAlign: 'center',
+                          background: (timeOverride !== undefined ? timeOverride : preview?.dueTime) === t.value
+                            ? 'rgba(249,115,22,0.2)' : 'var(--bg-input)',
+                          color: (timeOverride !== undefined ? timeOverride : preview?.dueTime) === t.value
+                            ? 'var(--accent-orange)' : 'var(--text-primary)',
+                          border: '1px solid var(--border-primary)', cursor: 'pointer', fontWeight: 500,
+                        }}
+                      >{t.label}</button>
+                    ))}
+                    <div style={{ gridColumn: '1/-1', height: 1, background: 'var(--border-primary)', margin: '4px 0' }} />
+                    <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        type="time"
+                        value={customTimeInput || (timeOverride !== undefined ? timeOverride : preview?.dueTime) || ''}
+                        onChange={handleCustomTimeInput}
+                        style={{
+                          flex: 1, fontSize: 12, padding: '4px 8px', borderRadius: 8,
+                          background: 'var(--bg-input)', border: '1px solid var(--border-primary)',
+                          color: 'var(--text-primary)', outline: 'none',
+                        }}
+                      />
+                    </div>
+                  </div>,
+                  document.body
+                )}
+              </div>
               
-              <span style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px',
-                borderRadius: 12,
-                fontSize: 11,
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-secondary)',
-              }}>
-                <Calendar size={10} />
-                {formatDate(preview.date)}
-              </span>
-              
-              {preview.dueTime && (
-                <span style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 12,
-                  fontSize: 11,
-                  background: 'rgba(249,115,22,0.15)',
-                  color: 'var(--accent-orange)',
-                }}>
-                  @ {formatTime(preview.dueTime)}
-                </span>
-              )}
-              
-              <span style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px',
-                borderRadius: 12,
-                fontSize: 11,
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-secondary)',
-              }}>
-                <Clock size={10} />
-                {preview.duration}m
-              </span>
+              {/* ── Clickable duration chip ── */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={durationBtnRef}
+                  type="button"
+                  onClick={handleDurationChipClick}
+                  title="Click to change duration"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 12, fontSize: 11,
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    cursor: 'pointer', transition: 'background 0.12s, border-color 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-blue)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)' }}
+                >
+                  <Clock size={10} />
+                  {fmtDuration(durationOverride ?? preview.duration)}
+                  <ChevronDown size={9} style={{ marginLeft: 1 }} />
+                </button>
+                {showDurationDropdown && durationDropdownPos && createPortal(
+                  <div
+                    id="qa-duration-portal"
+                    style={{
+                      position: 'fixed',
+                      top: durationDropdownPos.top,
+                      left: Math.max(8, durationDropdownPos.left),
+                      zIndex: 9999,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 10,
+                      padding: 10,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 4,
+                      minWidth: 170,
+                    }}
+                  >
+                    {QUICK_DURATIONS.map(d => (
+                      <button key={d.value} type="button"
+                        onClick={() => { setDurationOverride(d.value); setShowDurationDropdown(false) }}
+                        style={{
+                          padding: '5px 8px', borderRadius: 8, fontSize: 12, textAlign: 'center',
+                          background: (durationOverride ?? preview?.duration) === d.value
+                            ? 'rgba(99,102,241,0.2)' : 'var(--bg-input)',
+                          color: (durationOverride ?? preview?.duration) === d.value
+                            ? 'var(--accent-blue)' : 'var(--text-primary)',
+                          border: '1px solid var(--border-primary)', cursor: 'pointer', fontWeight: 500,
+                        }}
+                      >{d.label}</button>
+                    ))}
+                  </div>,
+                  document.body
+                )}
+              </div>
               
               {preview.priority && (
                 <span style={{ 
@@ -381,6 +733,7 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
             borderTop: '1px solid rgba(249,115,22,0.3)',
             background: 'rgba(249,115,22,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+            borderRadius: '0 0 16px 16px',
           }}>
             <span style={{ fontSize: 12, color: '#f97316', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
               <AlertTriangle size={12} color="#f97316" style={{ flexShrink: 0 }} />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Search, Calendar, X, Clock, CheckCircle2, Circle, ArrowRight, StickyNote } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 function getDateLabel(dateStr) {
   const today = new Date()
@@ -205,7 +206,7 @@ export default function CommandPalette({ isOpen, onClose, tasks, topics, getTopi
                           {task.topic}
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Clock size={10} /> {task.duration}m
+                          <Clock size={10} /> {fmtDuration(task.duration)}
                         </span>
                         {task.note?.trim() && (
                           <span style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 3 }}>

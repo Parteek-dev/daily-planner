@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, CheckCheck, Sparkles, ChevronDown, ChevronRight, Repeat, GripVertical, Square, CheckSquare, Calendar, X, Flag, Link, Focus, LayoutList, Clock3, CalendarClock, StickyNote, ChevronUp, ClipboardList, AlertTriangle } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 import AddTaskModal from '../components/AddTaskModal'
 import SearchFilter, { filterTasks } from '../components/SearchFilter'
 import DailyNotes from '../components/DailyNotes'
@@ -9,7 +11,89 @@ import TimeBlockView from '../components/TimeBlockView'
 import FocusMode from '../components/FocusMode'
 import { PRIORITY_CONFIG } from '../hooks/useProgress'
 
-export default function TodayPage({ progress, getFocusedTaskRef }) {
+// ── Focus hint toast — fixed bottom of viewport, auto-dismisses ─────────────
+function FocusHintToast({ type, onDismiss, onAddTask }) {
+  const [visible, setVisible] = useState(false)
+
+  // Trigger entrance on next tick so CSS transition fires
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  // Auto-dismiss after 8s
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setVisible(false)
+      setTimeout(onDismiss, 300) // wait for exit transition
+    }, 8000)
+    return () => clearTimeout(id)
+  }, [onDismiss])
+
+  const handleDismiss = () => {
+    setVisible(false)
+    setTimeout(onDismiss, 300)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 28, left: '50%',
+      zIndex: 9999, width: 'min(480px, calc(100vw - 32px))',
+      background: 'var(--bg-card)', border: '1px solid rgba(99,102,241,0.35)',
+      borderLeft: '4px solid var(--accent-blue)',
+      borderRadius: 14, padding: '14px 16px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      display: 'flex', alignItems: 'center', gap: 12,
+      // Transition-based entrance/exit — reliable across all browsers
+      transform: visible ? 'translate(-50%, 0)' : 'translate(-50%, 20px)',
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 0.28s ease, transform 0.28s ease',
+      pointerEvents: visible ? 'auto' : 'none',
+    }}>
+      <Focus size={20} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        {type === 'choose' ? (
+          <>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Which task do you want to focus on?
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Click the focus icon on any task to start timing it
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+              No tasks yet for today
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Add a task first, then use the focus icon to time it
+            </p>
+          </>
+        )}
+      </div>
+      {type === 'add' && (
+        <button
+          onClick={onAddTask}
+          style={{
+            padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            background: 'var(--accent-blue)', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0,
+          }}
+        >
+          Add task
+        </button>
+      )}
+      <button
+        onClick={handleDismiss}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, flexShrink: 0 }}
+      >
+        <X size={15} />
+      </button>
+    </div>
+  )
+}
+
+export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, globalFocusTask }) {
   const { todayTasks, tasks, topics, addTask, addTopic, toggleTaskComplete, deleteTask, updateTask, getTopicColor, todayCompleted, todayTotal, todayPercent, toggleSubtaskComplete, reorderTasks, getNote, setNote, bulkCompleteTasks, bulkDeleteTasks, bulkMoveTasks, templates, createTaskFromTemplate, sortTasksByPriority, areDependenciesMet, getBlockingTasks, setActualDuration, updateTaskNote } = progress
 
   const [showAddModal, setShowAddModal] = useState(false)
@@ -43,6 +127,35 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
 
   // Per-task inline notes — stored in task.note via Supabase
   const [expandedNotes, setExpandedNotes] = useState(new Set())
+
+  // ── Focus Mode hint (from TimeTrackingStats "Start Focus Mode" button) ──
+  const [focusHintType, setFocusHintType] = useState(null) // 'choose' | 'add' | null
+  const pendingFocusHint = useRef(!!sessionStorage.getItem('focus_mode_hint'))
+
+  // Clear the sessionStorage key immediately so it's one-shot
+  useEffect(() => {
+    if (pendingFocusHint.current) {
+      sessionStorage.removeItem('focus_mode_hint')
+    }
+  }, [])
+
+  // Act on the hint once todayTasks is actually populated
+  useEffect(() => {
+    if (!pendingFocusHint.current) return
+    if (todayTasks.length === 0 && !areDependenciesMet) return // not yet loaded
+
+    pendingFocusHint.current = false // only fire once
+
+    const incomplete = todayTasks.filter(t => !t.completed && areDependenciesMet(t))
+    if (incomplete.length === 0) {
+      setFocusHintType('add')
+    } else if (incomplete.length === 1) {
+      setFocusTask(incomplete[0])
+    } else {
+      setFocusHintType('choose')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayTasks])
 
   // Register "get focused task" so App-level P shortcut can pick it up
   useEffect(() => {
@@ -266,7 +379,8 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
   }
 
   const startFocusMode = (task) => {
-    setFocusTask(task)
+    if (onStartFocus) onStartFocus(task)
+    setFocusHintType(null)
   }
 
   const handleFocusNext = () => {
@@ -320,7 +434,7 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
         {todayTotal > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>
             <Clock size={12} />
-            <span>{completedMinutes}m done / {totalMinutes}m planned</span>
+            <span>{fmtDuration(completedMinutes)} done / {fmtDuration(totalMinutes)} planned</span>
           </div>
         )}
       </div>
@@ -372,6 +486,16 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
         </div>
       )}
 
+      {/* ── Focus Mode hint — fixed toast at bottom of viewport ── */}
+      {focusHintType && createPortal(
+        <FocusHintToast
+          type={focusHintType}
+          onDismiss={() => setFocusHintType(null)}
+          onAddTask={() => { setFocusHintType(null); setEditingTask(null); setShowAddModal(true) }}
+        />,
+        document.body
+      )}
+
       {/* Time breakdown by topic */}
       {Object.keys(tasksByTopic).length > 0 && (
         <div className="card-static" style={{ marginBottom: 20, padding: 16 }}>
@@ -396,9 +520,9 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
                     color: 'white',
                     minWidth: pct > 10 ? 40 : 0,
                   }}
-                  title={`${topic}: ${mins}m`}
+                  title={`${topic}: ${fmtDuration(mins)}`}
                 >
-                  {pct > 15 && `${mins}m`}
+                  {pct > 15 && fmtDuration(mins)}
                 </div>
               )
             })}
@@ -410,7 +534,7 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
                 <div key={topic} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: getTopicColor(topic) }} />
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {topic}: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{mins}m</span>
+                    {topic}: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{fmtDuration(mins)}</span>
                   </span>
                 </div>
               )
@@ -730,7 +854,7 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
                         {task.topic}
                       </span>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={11} /> {task.duration}m
+                        <Clock size={11} /> {fmtDuration(task.duration)}
                       </span>
                       {task.dueTime && (
                         <span style={{ fontSize: 12, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
@@ -979,18 +1103,6 @@ export default function TodayPage({ progress, getFocusedTaskRef }) {
       />
 
       {/* Focus Mode */}
-      <FocusMode
-        isOpen={!!focusTask}
-        onClose={() => setFocusTask(null)}
-        task={focusTask}
-        onToggleComplete={(taskId) => {
-          toggleTaskComplete(taskId)
-          setFocusTask(prev => prev ? { ...prev, completed: !prev.completed } : null)
-        }}
-        onSetActualDuration={setActualDuration}
-        onNextTask={handleFocusNext}
-        hasNextTask={!!getNextTask()}
-      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import {
   Search, Calendar, Trash2, Settings, Compass, ChevronLeft,
 } from 'lucide-react'
 import { useTheme, ACCENT_COLORS } from '../hooks/useTheme.jsx'
+import { fmtDuration } from '../lib/utils'
 
 // ── Tab config ───────────────────────────────────────────────────────────────
 
@@ -588,7 +589,7 @@ function ArchiveTab({ archivedTasks, onRestore, onDelete, onArchiveOld, getTopic
                       {task.topic}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={11} />{fmt(task.date)}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{task.duration}m</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{fmtDuration(task.duration)}</span>
                     {task.archivedAt && <span>Archived {fmt(task.archivedAt)}</span>}
                   </div>
                 </div>

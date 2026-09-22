@@ -19,14 +19,14 @@ function goalLabel(goal) {
   switch (goal.type) {
     case 'min_tasks':
       return goal.topic
-        ? `Complete ${goal.value}+ ${goal.topic} tasks`
-        : `Complete ${goal.value}+ tasks`
+        ? `${goal.topic} tasks (${goal.value}+)`
+        : `Task goal (${goal.value}+)`
     case 'min_time':
       return goal.topic
-        ? `Spend ${goal.value}min on ${goal.topic}`
-        : `Spend ${goal.value}min on any topic`
+        ? `${goal.topic} focus time`
+        : `Focus time`
     case 'all_priority':
-      return `Complete all ${goal.priority}-priority tasks`
+      return `${goal.priority.charAt(0).toUpperCase() + goal.priority.slice(1)} priority`
     default:
       return 'Goal'
   }
@@ -263,12 +263,12 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}><CheckSquare size={14} color="#22c55e" /></span>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                  Complete {target}+ tasks
+                  Daily tasks
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: achieved ? 'var(--accent-green)' : 'var(--text-primary)' }}>
-                  {completed}/{target}
+                  {achieved ? '✓ Done' : `${completed} of ${target}`}
                 </span>
                 {achieved && <Trophy size={14} color="var(--accent-green)" />}
               </div>
@@ -288,7 +288,7 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
             )}
             {!achieved && completed > 0 && (
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                {target - completed} more to go
+                {target - completed} remaining
               </p>
             )}
           </div>
@@ -319,7 +319,14 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: goal.achieved ? 'var(--accent-green)' : 'var(--text-primary)' }}>
-                        {goal.type === 'min_time' ? `${goal.current}/${goal.target}m` : `${goal.current}/${goal.target}`}
+                        {goal.achieved
+                          ? '✓ Done'
+                          : goal.type === 'all_priority' && goal.target === 0
+                            ? '—'
+                            : goal.type === 'min_time'
+                              ? `${goal.current}m / ${goal.target}m`
+                              : `${goal.current} of ${goal.target}`
+                        }
                       </span>
                       {goal.achieved && <CheckCircle2 size={13} color="var(--accent-green)" />}
                       <button
@@ -331,7 +338,9 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
                       </button>
                     </div>
                   </div>
-                  {goal.type !== 'all_priority' || goal.target > 0 ? (
+                  {goal.type === 'all_priority' && goal.target === 0 ? (
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>Nothing to do here today</p>
+                  ) : goal.type !== 'all_priority' || goal.target > 0 ? (
                     <div className="progress-bar" style={{ height: 5 }}>
                       <div className="progress-bar-fill" style={{
                         width: `${goal.percent}%`,
@@ -339,9 +348,7 @@ export default function GoalSetting({ dailyGoal, onSetGoal, progress, extraGoals
                         transition: 'width 0.4s ease',
                       }} />
                     </div>
-                  ) : (
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>No {goal.priority}-priority tasks today</p>
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Clock, Flag, Link, AlertCircle } from 'lucide-react'
 import { PRIORITY_CONFIG } from '../hooks/useProgress'
+import { fmtDuration } from '../lib/utils'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i) // 0-23
 const HOUR_HEIGHT = 60 // pixels per hour
@@ -260,7 +261,7 @@ export default function TimeBlockView({
                 </p>
                 {height > 50 && (
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {task.duration}min
+                    {fmtDuration(task.duration)}
                   </p>
                 )}
               </div>

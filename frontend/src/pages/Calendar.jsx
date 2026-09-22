@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, Repeat, ListChecks, BookOpen, StickyNote } from 'lucide-react'
 import AddTaskModal from '../components/AddTaskModal'
+import { fmtDuration } from '../lib/utils'
 import SearchFilter, { filterTasks } from '../components/SearchFilter'
 import DailyNotes from '../components/DailyNotes'
 
@@ -421,7 +422,7 @@ export default function CalendarPage({ progress }) {
                           {task.topic}
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Clock size={10} /> {task.duration}m
+                          <Clock size={10} /> {fmtDuration(task.duration)}
                         </span>
                         {task.recurrence && task.recurrence !== 'none' && (
                           <span style={{ fontSize: 10, color: 'var(--accent-purple)', display: 'flex', alignItems: 'center', gap: 2 }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Mic, MicOff, CheckCircle2, RotateCcw, Clock, Calendar, Flag, Tag, AlertCircle } from 'lucide-react'
+import { fmtDuration } from '../lib/utils'
 
 // ── Smart parser ──────────────────────────────────────────────────────────────
 function parseVoiceCommand(text, knownTopics = []) {
@@ -206,7 +207,7 @@ export default function VoiceInput({ onResult, onClose, isOpen, topics = [] }) {
 
   // ── Parsed field chips ────────────────────────────────────────────────────
   const chips = parsed ? [
-    parsed.duration && { icon: <Clock size={12} />, label: `${parsed.duration}m`,       color: '#3b82f6' },
+    parsed.duration && { icon: <Clock size={12} />, label: fmtDuration(parsed.duration),       color: '#3b82f6' },
     parsed.dueTime  && { icon: <Clock size={12} />, label: `at ${parsed.dueTime}`,       color: '#8b5cf6' },
     parsed.priority && { icon: <Flag size={12} />,  label: parsed.priority,              color: parsed.priority === 'high' ? '#ef4444' : parsed.priority === 'medium' ? '#f97316' : '#22c55e' },
     parsed.topic    && { icon: <Tag size={12} />,   label: parsed.topic,                 color: '#14b8a6' },

@@ -67,12 +67,14 @@ export default function LineChart({ data, height = 220, color = '#4f7fff' }) {
 
   const xIdxs = useMemo(() => {
     if (!data) return []
+    const last = data.length - 1
     const s = new Set([0])
     data.forEach((d, i) => {
       if (d.date && new Date(d.date + 'T12:00:00').getDay() === 1) s.add(i)
     })
-    s.add(data.length - 1)
-    return [...s].sort((a, b) => a - b)
+    s.add(last)
+    // Remove any index that's within 3 positions of the last one (avoids "Sep 21 Today" overlap)
+    return [...s].sort((a, b) => a - b).filter(i => i === last || last - i > 3)
   }, [data])
 
   // Draw animation
