@@ -4,6 +4,7 @@ import { Plus, CheckCircle2, Circle, Clock, Trash2, Edit3, CheckCheck, Sparkles,
 import { fmtDuration } from '../lib/utils'
 import AddTaskModal from '../components/AddTaskModal'
 import SearchFilter, { filterTasks } from '../components/SearchFilter'
+import DatePickerField from '../components/DatePickerField'
 import DailyNotes from '../components/DailyNotes'
 import TaskTemplates from '../components/TaskTemplates'
 import QuickAdd from '../components/QuickAdd'
@@ -127,6 +128,9 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
 
   // Per-task inline notes — stored in task.note via Supabase
   const [expandedNotes, setExpandedNotes] = useState(new Set())
+
+  // Track which task is hovered for showing action icons
+  const [hoveredTaskId, setHoveredTaskId] = useState(null)
 
   // ── Focus Mode hint (from TimeTrackingStats "Start Focus Mode" button) ──
   const [focusHintType, setFocusHintType] = useState(null) // 'choose' | 'add' | null
@@ -502,7 +506,7 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
           <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Time Plan
           </h3>
-          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 24, marginBottom: 12 }}>
+          <div style={{ position: 'relative', display: 'flex', borderRadius: 8, overflow: 'hidden', height: 24, marginBottom: 12 }}>
             {Object.entries(tasksByTopic).map(([topic, tasks]) => {
               const mins = tasks.reduce((s, t) => s + (t.duration || 0), 0)
               const pct = totalMinutes > 0 ? (mins / totalMinutes) * 100 : 0
@@ -512,20 +516,21 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                   style={{
                     width: `${pct}%`,
                     background: getTopicColor(topic),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'white',
                     minWidth: pct > 10 ? 40 : 0,
                   }}
                   title={`${topic}: ${fmtDuration(mins)}`}
-                >
-                  {pct > 15 && fmtDuration(mins)}
-                </div>
+                />
               )
             })}
+            {/* Single total label centered over the whole bar */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 600, color: 'white',
+              pointerEvents: 'none',
+            }}>
+              {fmtDuration(totalMinutes)}
+            </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {Object.entries(tasksByTopic).map(([topic, tasks]) => {
@@ -775,6 +780,8 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                 
                 <div
                   className={`task-item ${task.completed ? 'completed' : ''}`}
+                  onMouseEnter={() => setHoveredTaskId(task.id)}
+                  onMouseLeave={() => setHoveredTaskId(null)}
                   style={{ 
                     borderRadius: (hasSubtasks && isExpanded) || expandedNotes.has(task.id) ? '12px 12px 0 0' : 12,
                     outline: isSelected ? '2px solid var(--accent-blue)' : 'none',
@@ -853,11 +860,11 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                       >
                         {task.topic}
                       </span>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={11} /> {fmtDuration(task.duration)}
                       </span>
                       {task.dueTime && (
-                        <span style={{ fontSize: 12, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                        <span style={{ fontSize: 11, color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
                           @ {formatTime(task.dueTime)}
                         </span>
                       )}
@@ -866,7 +873,6 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                           <Repeat size={11} /> {task.recurrence}
                         </span>
                       )}
-                      {/* Dependency indicator */}
                       {task.dependsOn && task.dependsOn.length > 0 && (
                         <span 
                           style={{ 
@@ -886,6 +892,54 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                           {completedSubtasks}/{task.subtasks.length} subtasks
                         </span>
                       )}
+
+                      {/* ── Action icons — horizontal, top-right, show on hover ── */}
+                      <div style={{
+                        marginLeft: 'auto',
+                        display: 'flex', alignItems: 'center', gap: 2,
+                        opacity: hoveredTaskId === task.id ? 1 : 0,
+                        transition: 'opacity 0.15s ease',
+                        pointerEvents: hoveredTaskId === task.id ? 'auto' : 'none',
+                        flexShrink: 0,
+                      }}>
+                        {hasSubtasks && (
+                          <button onClick={() => toggleExpanded(task.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: 'var(--text-muted)', borderRadius: 5 }}
+                            className="btn-ghost" title={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}>
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </button>
+                        )}
+                        {!task.completed && areDependenciesMet(task) && (
+                          <button onClick={() => startFocusMode(task)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: 'var(--accent-blue)', borderRadius: 5 }}
+                            className="btn-ghost" title="Focus on this task">
+                            <Focus size={14} />
+                          </button>
+                        )}
+                        <button onClick={() => toggleNoteExpanded(task.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', borderRadius: 5,
+                            color: task.note?.trim() ? 'var(--accent-blue)' : 'var(--text-muted)' }}
+                          className="btn-ghost" title={expandedNotes.has(task.id) ? 'Hide note' : 'Add/view note'}>
+                          <StickyNote size={14} />
+                        </button>
+                        {!task.completed && (
+                          <button onClick={() => rescheduleToTomorrow(task.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: 'var(--text-muted)', borderRadius: 5 }}
+                            className="btn-ghost" title="Reschedule to tomorrow">
+                            <CalendarClock size={14} />
+                          </button>
+                        )}
+                        <button onClick={() => handleEditTask(task)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: 'var(--text-muted)', borderRadius: 5 }}
+                          className="btn-ghost" title="Edit task">
+                          <Edit3 size={14} />
+                        </button>
+                        <button onClick={() => deleteTask(task.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: 'var(--text-muted)', borderRadius: 5 }}
+                          className="btn-ghost" title="Delete task">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                     <p className="task-title" style={{
                       fontWeight: 500,
@@ -897,63 +951,6 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
                     {task.description?.trim() && (
                       <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{task.description.trim()}</p>
                     )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {hasSubtasks && (
-                      <button
-                        onClick={() => toggleExpanded(task.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', borderRadius: 6 }}
-                        className="btn-ghost"
-                      >
-                        {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                      </button>
-                    )}
-                    {/* Focus button */}
-                    {!task.completed && areDependenciesMet(task) && (
-                      <button
-                        onClick={() => startFocusMode(task)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--accent-blue)', borderRadius: 6 }}
-                        className="btn-ghost"
-                        title="Focus on this task"
-                      >
-                        <Focus size={15} />
-                      </button>
-                    )}
-                    {/* Task note toggle */}
-                    <button
-                      onClick={() => toggleNoteExpanded(task.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6,
-                      color: task.note?.trim() ? 'var(--accent-blue)' : 'var(--text-muted)' }}
-                      className="btn-ghost"
-                      title={expandedNotes.has(task.id) ? 'Hide note' : 'Add/view note'}
-                    >
-                      <StickyNote size={15} />
-                    </button>
-                    {/* Reschedule to tomorrow */}
-                    {!task.completed && (
-                      <button
-                        onClick={() => rescheduleToTomorrow(task.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', borderRadius: 6 }}
-                        className="btn-ghost"
-                        title="Reschedule to tomorrow"
-                      >
-                        <CalendarClock size={15} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEditTask(task)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', borderRadius: 6 }}
-                      className="btn-ghost"
-                    >
-                      <Edit3 size={15} />
-                    </button>
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--text-muted)', borderRadius: 6 }}
-                      className="btn-ghost"
-                    >
-                      <Trash2 size={15} />
-                    </button>
                   </div>
                 </div>
 
@@ -1057,13 +1054,7 @@ export default function TodayPage({ progress, getFocusedTaskRef, onStartFocus, g
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <Calendar size={14} /> Move to Date
               </label>
-              <input
-                type="date"
-                className="input"
-                value={moveDate}
-                onChange={e => setMoveDate(e.target.value)}
-                min={todayStr}
-              />
+              <DatePickerField value={moveDate} onChange={setMoveDate} />
             </div>
             
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

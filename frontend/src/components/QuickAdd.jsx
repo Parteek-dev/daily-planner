@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Zap, Plus, Clock, Calendar, Tag, Flag, AlertTriangle, ChevronDown, X } from 'lucide-react'
 import { fmtDuration } from '../lib/utils'
+import DatePickerField from './DatePickerField'
+import TimePickerField from './TimePickerField'
+import DurationField from './DurationField'
 
 // Natural language parser for quick task input
 function parseQuickInput(input, topics = []) {
@@ -480,232 +483,31 @@ export default function QuickAdd({ onAdd, topics, getTopicColor, tasks = [] }) {
                 </span>
               )}
 
-              {/* ── Clickable date chip ── */}
-              <div style={{ position: 'relative' }}>
-                <button
-                  ref={dateBtnRef}
-                  type="button"
-                  onClick={handleDateChipClick}
-                  title="Click to change date"
-                  style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '4px 10px',
-                    borderRadius: 12,
-                    fontSize: 11,
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    cursor: 'pointer',
-                    transition: 'background 0.12s, border-color 0.12s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--accent-blue)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-primary)' }}
-                >
-                  <Calendar size={10} />
-                  {formatDate(dateOverride ?? preview.date)}
-                </button>
-                {showDatePicker && datePickerPos && createPortal(
-                  <div
-                    id="qa-date-portal"
-                    style={{
-                      position: 'fixed',
-                      top: datePickerPos.top,
-                      left: datePickerPos.left,
-                      zIndex: 9999,
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: 10,
-                      padding: 10,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                      minWidth: 180,
-                    }}
-                  >
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, paddingBottom: 2 }}>Pick a date</span>
-                    {[
-                      { label: 'Today', value: todayStr },
-                      { label: 'Tomorrow', value: tomorrowStr },
-                    ].map(opt => (
-                      <button key={opt.value} type="button"
-                        onClick={() => { setDateOverride(opt.value); setShowDatePicker(false) }}
-                        style={{
-                          padding: '5px 10px', borderRadius: 8, fontSize: 12, textAlign: 'left',
-                          background: (dateOverride ?? preview.date) === opt.value ? 'var(--accent-blue)' : 'transparent',
-                          color: (dateOverride ?? preview.date) === opt.value ? '#fff' : 'var(--text-primary)',
-                          border: 'none', cursor: 'pointer', fontWeight: 500,
-                        }}
-                      >{opt.label}</button>
-                    ))}
-                    <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0' }} />
-                    <input
-                      type="date"
-                      value={dateOverride ?? preview.date}
-                      onChange={handleDatePickerChange}
-                      style={{
-                        fontSize: 12, padding: '5px 8px', borderRadius: 8,
-                        background: 'var(--bg-input)', border: '1px solid var(--border-primary)',
-                        color: 'var(--text-primary)', outline: 'none', width: '100%',
-                      }}
-                    />
-                  </div>,
-                  document.body
-                )}
+              {/* ── Date picker (shared component) ── */}
+              <div style={{ minWidth: 110 }}>
+                <DatePickerField
+                  value={dateOverride ?? preview.date}
+                  onChange={(v) => setDateOverride(v)}
+                  compact
+                />
               </div>
 
-              {/* ── Clickable time chip ── */}
-              <div style={{ position: 'relative' }}>
-                {(() => {
-                  const resolvedTime = timeOverride !== undefined ? timeOverride : preview.dueTime
-                  return (
-                    <>
-                      <button
-                        ref={timeBtnRef}
-                        type="button"
-                        onClick={handleTimeChipClick}
-                        title="Click to set time"
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          padding: '4px 10px', borderRadius: 12, fontSize: 11,
-                          background: resolvedTime ? 'rgba(249,115,22,0.15)' : 'var(--bg-secondary)',
-                          color: resolvedTime ? 'var(--accent-orange)' : 'var(--text-muted)',
-                          border: `1px solid ${resolvedTime ? 'rgba(249,115,22,0.35)' : 'var(--border-primary)'}`,
-                          cursor: 'pointer', transition: 'background 0.12s',
-                        }}
-                      >
-                        <Clock size={10} />
-                        {resolvedTime ? formatTime(resolvedTime) : 'Add time'}
-                        <ChevronDown size={9} style={{ marginLeft: 1 }} />
-                      </button>
-                      {resolvedTime && (
-                        <button
-                          type="button"
-                          onClick={clearTime}
-                          title="Remove time"
-                          style={{
-                            position: 'absolute', top: -4, right: -4,
-                            width: 14, height: 14, borderRadius: '50%',
-                            background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', padding: 0, color: 'var(--text-muted)',
-                          }}
-                        >
-                          <X size={8} />
-                        </button>
-                      )}
-                    </>
-                  )
-                })()}
-                {showTimeDropdown && timeDropdownPos && createPortal(
-                  <div
-                    id="qa-time-portal"
-                    style={{
-                      position: 'fixed',
-                      top: timeDropdownPos.top,
-                      left: Math.max(8, timeDropdownPos.left),
-                      zIndex: 9999,
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: 10,
-                      padding: 10,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: 4,
-                      minWidth: 170,
-                    }}
-                  >
-                    {QUICK_TIMES.map(t => (
-                      <button key={t.value} type="button"
-                        onClick={() => selectQuickTime(t.value)}
-                        style={{
-                          padding: '5px 8px', borderRadius: 8, fontSize: 12, textAlign: 'center',
-                          background: (timeOverride !== undefined ? timeOverride : preview?.dueTime) === t.value
-                            ? 'rgba(249,115,22,0.2)' : 'var(--bg-input)',
-                          color: (timeOverride !== undefined ? timeOverride : preview?.dueTime) === t.value
-                            ? 'var(--accent-orange)' : 'var(--text-primary)',
-                          border: '1px solid var(--border-primary)', cursor: 'pointer', fontWeight: 500,
-                        }}
-                      >{t.label}</button>
-                    ))}
-                    <div style={{ gridColumn: '1/-1', height: 1, background: 'var(--border-primary)', margin: '4px 0' }} />
-                    <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input
-                        type="time"
-                        value={customTimeInput || (timeOverride !== undefined ? timeOverride : preview?.dueTime) || ''}
-                        onChange={handleCustomTimeInput}
-                        style={{
-                          flex: 1, fontSize: 12, padding: '4px 8px', borderRadius: 8,
-                          background: 'var(--bg-input)', border: '1px solid var(--border-primary)',
-                          color: 'var(--text-primary)', outline: 'none',
-                        }}
-                      />
-                    </div>
-                  </div>,
-                  document.body
-                )}
+              {/* ── Time picker (shared component) ── */}
+              <div style={{ minWidth: 110 }}>
+                <TimePickerField
+                  value={timeOverride !== undefined ? (timeOverride ?? '') : (preview.dueTime ?? '')}
+                  onChange={(v) => setTimeOverride(v || null)}
+                  compact
+                />
               </div>
               
-              {/* ── Clickable duration chip ── */}
-              <div style={{ position: 'relative' }}>
-                <button
-                  ref={durationBtnRef}
-                  type="button"
-                  onClick={handleDurationChipClick}
-                  title="Click to change duration"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '4px 10px', borderRadius: 12, fontSize: 11,
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    cursor: 'pointer', transition: 'background 0.12s, border-color 0.12s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-blue)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)' }}
-                >
-                  <Clock size={10} />
-                  {fmtDuration(durationOverride ?? preview.duration)}
-                  <ChevronDown size={9} style={{ marginLeft: 1 }} />
-                </button>
-                {showDurationDropdown && durationDropdownPos && createPortal(
-                  <div
-                    id="qa-duration-portal"
-                    style={{
-                      position: 'fixed',
-                      top: durationDropdownPos.top,
-                      left: Math.max(8, durationDropdownPos.left),
-                      zIndex: 9999,
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: 10,
-                      padding: 10,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: 4,
-                      minWidth: 170,
-                    }}
-                  >
-                    {QUICK_DURATIONS.map(d => (
-                      <button key={d.value} type="button"
-                        onClick={() => { setDurationOverride(d.value); setShowDurationDropdown(false) }}
-                        style={{
-                          padding: '5px 8px', borderRadius: 8, fontSize: 12, textAlign: 'center',
-                          background: (durationOverride ?? preview?.duration) === d.value
-                            ? 'rgba(99,102,241,0.2)' : 'var(--bg-input)',
-                          color: (durationOverride ?? preview?.duration) === d.value
-                            ? 'var(--accent-blue)' : 'var(--text-primary)',
-                          border: '1px solid var(--border-primary)', cursor: 'pointer', fontWeight: 500,
-                        }}
-                      >{d.label}</button>
-                    ))}
-                  </div>,
-                  document.body
-                )}
+              {/* ── Duration picker (shared component) ── */}
+              <div style={{ minWidth: 80 }}>
+                <DurationField
+                  value={durationOverride ?? preview.duration}
+                  onChange={(mins) => setDurationOverride(mins)}
+                  compact
+                />
               </div>
               
               {preview.priority && (

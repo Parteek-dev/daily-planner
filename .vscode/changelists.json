@@ -3,13 +3,16 @@
     {
       "name": "Default",
       "files": [
+        "frontend/src/components/DatePickerField.jsx",
         ".vscode/changelists.json",
-        "frontend/src/components/SettingsModal.jsx",
-        "frontend/src/index.css",
-        "frontend/src/App.jsx",
+        "frontend/src/components/TimePickerField.jsx",
+        "frontend/src/components/AddTaskModal.jsx",
+        "frontend/src/components/QuickAdd.jsx",
+        "frontend/src/components/TaskTemplates.jsx",
         "frontend/src/pages/Today.jsx",
-        "frontend/src/hooks/useAccessibility.jsx",
-        "frontend/src/hooks/useProgress.js"
+        "frontend/src/components/SettingsModal.jsx",
+        "frontend/src/components/DurationField.jsx",
+        "frontend/src/index.css"
       ]
     }
   ],

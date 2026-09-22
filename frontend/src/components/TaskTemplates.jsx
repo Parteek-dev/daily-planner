@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Copy, Plus, Trash2, X, Clock, Tag, ChevronDown, ChevronRight } from 'lucide-react'
 import { fmtDuration } from '../lib/utils'
+import DatePickerField from './DatePickerField'
 
 export default function TaskTemplates({ 
   templates, 
@@ -183,12 +184,7 @@ export default function TaskTemplates({
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 Schedule for Date
               </label>
-              <input
-                type="date"
-                className="input"
-                value={targetDate}
-                onChange={e => setTargetDate(e.target.value)}
-              />
+              <DatePickerField value={targetDate} onChange={setTargetDate} />
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

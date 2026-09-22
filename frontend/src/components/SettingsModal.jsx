@@ -9,6 +9,7 @@ import {
 import { useTheme, ACCENT_COLORS } from '../hooks/useTheme.jsx'
 import { useAccessibility, FONT_SIZES } from '../hooks/useAccessibility.jsx'
 import { fmtDuration } from '../lib/utils'
+import DatePickerField from './DatePickerField'
 
 // ── Tab config ───────────────────────────────────────────────────────────────
 
@@ -557,16 +558,11 @@ function DataTab({ onExport, onImport, onExportIcs, onImportIcs, onReset, totalT
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>From</label>
-            <input type="date" className="input" value={icsFrom}
-              onChange={e => setIcsFrom(e.target.value)}
-              style={{ padding: '7px 10px', fontSize: 13, width: '100%' }} />
+            <DatePickerField value={icsFrom} onChange={setIcsFrom} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>To</label>
-            <input type="date" className="input" value={icsTo}
-              onChange={e => setIcsTo(e.target.value)}
-              min={icsFrom || undefined}
-              style={{ padding: '7px 10px', fontSize: 13, width: '100%' }} />
+            <DatePickerField value={icsTo} onChange={setIcsTo} />
           </div>
         </div>
 

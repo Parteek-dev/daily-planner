@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Clock, Calendar, Tag, ListChecks, Repeat, Trash2, Copy, Flag, Link, AlertTriangle } from 'lucide-react'
 import { fmtDuration } from '../lib/utils'
+import DatePickerField from './DatePickerField'
+import TimePickerField from './TimePickerField'
+import DurationField from './DurationField'
 
 const PRESET_COLORS = [
   '#3b82f6', '#22c55e', '#f97316', '#a855f7', 
@@ -382,49 +385,19 @@ export default function AddTaskModal({
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <Clock size={14} /> Duration
               </label>
-              <input
-                type="text"
-                className="input"
-                value={durationInput}
-                onChange={e => {
-                  setDurationInput(e.target.value)
-                  const mins = parseDuration(e.target.value)
-                  if (mins && mins > 0) setDuration(mins)
-                }}
-                onBlur={() => {
-                  const mins = parseDuration(durationInput)
-                  if (mins && mins > 0) {
-                    setDuration(mins)
-                    setDurationInput(formatDurationDisplay(mins))
-                  } else {
-                    setDurationInput(formatDurationDisplay(duration))
-                  }
-                }}
-                placeholder="30m, 1h, 1.5h…"
-              />
+              <DurationField value={duration} onChange={(mins) => { setDuration(mins); setDurationInput(fmtDuration(mins)) }} />
             </div>
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <Calendar size={14} /> Date
               </label>
-              <input
-                type="date"
-                className="input"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-              />
+              <DatePickerField value={date} onChange={setDate} />
             </div>
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <Clock size={14} /> Time
               </label>
-              <input
-                type="time"
-                className="input"
-                value={dueTime}
-                onChange={e => setDueTime(e.target.value)}
-                placeholder="Optional"
-              />
+              <TimePickerField value={dueTime} onChange={setDueTime} />
             </div>
           </div>
 
@@ -658,14 +631,9 @@ export default function AddTaskModal({
                 <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
                   End date (optional):
                 </label>
-                <input
-                  type="date"
-                  className="input"
-                  value={recurrenceEndDate}
-                  onChange={e => setRecurrenceEndDate(e.target.value)}
-                  min={date}
-                  style={{ maxWidth: 180 }}
-                />
+                <div style={{ maxWidth: 180 }}>
+                  <DatePickerField value={recurrenceEndDate} onChange={setRecurrenceEndDate} />
+                </div>
               </div>
             )}
           </div>
