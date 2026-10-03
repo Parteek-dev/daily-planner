@@ -184,7 +184,7 @@ function OverviewTab({
       {/* Progress bar - shown for both mobile and desktop */}
       <View style={[s.progressCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
         <View style={s.progressLabelRow}>
-          <Text style={[s.progressLabel, { color: tokens.textMuted }]}>Today's goal progress</Text>
+          <Text style={[s.progressLabel, { color: tokens.textSecondary }]}>Today's goal progress</Text>
           {!streakData.studiedToday && todayCompleted === 0 ? (
             <View style={s.progressHint}>
               <AlertCircle size={11} color="#f97316" />
@@ -790,9 +790,9 @@ function ActivityTab({ tokens, tasks, recentCompletedTasks, getTopicColor, isWid
         <Text style={[s.sectionTitle, { color: tokens.textSecondary, marginBottom: 14 }]}>Recent activity</Text>
 
         {activityGroups.length === 0 ? (
-          <View style={s.emptyActivityWrap}>
+          <View style={[s.emptyActivityWrap, { backgroundColor: tokens.bgInput, borderRadius: 12 }]}>
             <Text style={[s.emptyActivity, { color: tokens.textMuted }]}>No completed tasks yet.</Text>
-            <Text style={{ fontSize: 12, color: tokens.textMuted, marginTop: 4, textAlign: 'center' }}>
+            <Text style={[s.emptyActivitySub, { color: tokens.textMuted }]}>
               Complete a task to see your activity here.
             </Text>
           </View>
@@ -806,7 +806,7 @@ function ActivityTab({ tokens, tasks, recentCompletedTasks, getTopicColor, isWid
                 <Text style={[s.activityDate, {
                   color: ds === today ? tokens.accentBlue : tokens.textSecondary,
                 }]}>
-                  {dayLabel(ds).toUpperCase()}
+                  {dayLabel(ds)}
                 </Text>
                 <View style={[s.activityDivider, { backgroundColor: tokens.borderPrimary }]} />
                 <Text style={[s.activityCount, { color: tokens.textMuted }]}>
@@ -1055,13 +1055,14 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.7,
     marginBottom: 5,
+    lineHeight: 14,
   },
   statValue: {
     fontSize: 26,
     fontWeight: '700',
     lineHeight: 30,
   },
-  statSub: { fontSize: 11, marginTop: 3 },
+  statSub: { fontSize: 11, marginTop: 3, lineHeight: 16 },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   timeUnit: { fontSize: 12, marginBottom: 2 },
@@ -1078,7 +1079,7 @@ const s = StyleSheet.create({
     flexGrow: 1,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
   },
   statCardLabel: {
@@ -1087,6 +1088,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.7,
     marginBottom: 8,
     textAlign: 'center',
+    lineHeight: 14,
   },
   statCardValue: {
     fontSize: 28,
@@ -1119,7 +1121,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-  progressLabel: { fontSize: 12 },
+  progressLabel: { fontSize: 12, lineHeight: 18 },
   progressHint: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   progressHintText: { fontSize: 11 },
   progressTrack: {
@@ -1179,7 +1181,7 @@ const s = StyleSheet.create({
   // 7-day grid
   sevenGrid: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   sevenCell: { flex: 1, alignItems: 'center', gap: 8, minWidth: 0 },
-  sevenDow: { fontSize: 12, fontWeight: '500' },
+  sevenDow: { fontSize: 12, fontWeight: '500', lineHeight: 18 },
   sevenBox: {
     width: '100%',
     aspectRatio: 1,
@@ -1207,7 +1209,8 @@ const s = StyleSheet.create({
   summaryLabel: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   // Recent Activity
   emptyActivityWrap: { paddingVertical: 24, alignItems: 'center' },
-  emptyActivity: { fontSize: 14, fontWeight: '500' },
+  emptyActivity: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  emptyActivitySub: { fontSize: 12, lineHeight: 18, marginTop: 4, textAlign: 'center' as any },
   activityGroup: {},
   activityGroupHeader: {
     flexDirection: 'row',
@@ -1215,9 +1218,9 @@ const s = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  activityDate: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  activityDate: { fontSize: 11, fontWeight: '600', lineHeight: 16 },
   activityDivider: { flex: 1, height: 1 },
-  activityCount: { fontSize: 11 },
+  activityCount: { fontSize: 11, lineHeight: 16 },
   activityTask: {
     flexDirection: 'row',
     alignItems: 'center',
