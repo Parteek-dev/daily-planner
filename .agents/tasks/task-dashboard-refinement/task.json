@@ -1,0 +1,12 @@
+{
+  "task_id": "task-dashboard-refinement",
+  "task_description": "UI/UX refinement of the Daily Planner Dashboard. FEAT-001 and FEAT-002 refined the Statistics tab (WeeklyReport, LineChart, index.tsx statistics section). FEAT-003 and FEAT-004 apply the same treatment to the Overview and Activity tabs (ProductivityScore, GoalSetting, Heatmap, OverviewTab, ActivityTab).",
+  "status": "completed",
+  "feature_order": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003",
+    "FEAT-004"
+  ],
+  "blocked_reason": null
+}
