@@ -438,11 +438,11 @@ function TopicBalanceRN({ tokens, data, analysis, getTopicColor, flex }: any) {
             })}
             {/* White inner hole */}
             <Circle cx={50} cy={50} r={26} fill={tokens.bgSecondary} />
-            <SvgText x={50} y={46} textAnchor="middle" dominantBaseline="middle"
+            <SvgText x={50} y={50} textAnchor="middle"
               fill={tokens.textPrimary} fontSize={10} fontWeight="700">
               {centerLabel}
             </SvgText>
-            <SvgText x={50} y={58} textAnchor="middle" dominantBaseline="middle"
+            <SvgText x={50} y={60} textAnchor="middle"
               fill={tokens.textMuted} fontSize={7}>
               {centerSub}
             </SvgText>
