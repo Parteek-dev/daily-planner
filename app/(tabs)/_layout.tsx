@@ -154,6 +154,7 @@ function SidebarLayout({
           screenOptions={{
             headerShown: false,
             tabBarStyle: { display: 'none' },
+            animation: 'fade',
           }}
         >
           <Tabs.Screen name="index" options={{ title: TAB_LABELS.index }} />
@@ -224,7 +225,7 @@ function NativeTabLayoutInner({ overdueCount }: Readonly<{ overdueCount: number 
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, animation: 'fade' }}
         tabBar={(props) => (
           <NavigationBar {...props} overdueCount={overdueCount} />
         )}
