@@ -20,6 +20,7 @@ import {
 } from 'react-native'
 import { PenLine, ChevronDown, ChevronUp, Check } from 'lucide-react-native'
 import { useTheme } from '@/src/hooks/useTheme'
+import { PressableScale } from '@/src/components/motion'
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -38,7 +39,7 @@ export interface DailyNotesProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DailyNotes({ date, note, onSave, alwaysShow = false }: DailyNotesProps) {
+export default function DailyNotes({ date, note, onSave, alwaysShow = false }: Readonly<DailyNotesProps>) {
   const { tokens } = useTheme()
   const styles = makeStyles(tokens)
 
@@ -115,7 +116,7 @@ export default function DailyNotes({ date, note, onSave, alwaysShow = false }: D
       onPress={!isExpanded ? toggleExpanded : undefined}
       style={[
         styles.container,
-        { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary },
+        { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary },
         isExpanded && styles.containerExpanded,
       ]}
       accessibilityRole="button"
@@ -149,7 +150,7 @@ export default function DailyNotes({ date, note, onSave, alwaysShow = false }: D
               <Text style={[styles.savedText, { color: tokens.accentGreen }]}>Saved</Text>
             </View>
           )}
-          <Pressable
+          <PressableScale
             onPress={toggleExpanded}
             style={styles.expandBtn}
             hitSlop={8}
@@ -161,7 +162,7 @@ export default function DailyNotes({ date, note, onSave, alwaysShow = false }: D
             ) : (
               <ChevronDown size={18} color={tokens.textMuted} />
             )}
-          </Pressable>
+          </PressableScale>
         </View>
       </View>
 

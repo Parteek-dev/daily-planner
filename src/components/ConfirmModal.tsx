@@ -39,7 +39,7 @@ export default function ConfirmModal({
   loading = false,
   onConfirm,
   onCancel,
-}: ConfirmModalProps) {
+}: Readonly<ConfirmModalProps>) {
   const { tokens } = useTheme()
   const styles = makeStyles(tokens)
 

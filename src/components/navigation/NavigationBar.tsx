@@ -49,6 +49,7 @@ import {
 
 import { useTheme } from '@/src/hooks/useTheme';
 import type { Tokens } from '@/src/theme/tokens';
+import { PressableScale } from '@/src/components/motion';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -127,9 +128,6 @@ const makeStyles = (tokens: Tokens) =>
       paddingVertical: tokens.spacing.xs,
       borderRadius: tokens.radius.lg,
       minHeight: 48,
-    },
-    tabPressed: {
-      opacity: 0.7,
     },
     // Active pill indicator background
     tabActive: {
@@ -215,11 +213,10 @@ function TabItem({
   const showBadge = tab.route === 'today' && overdueCount > 0;
 
   return (
-    <Pressable
-      style={({ pressed }) => [
+    <PressableScale
+      style={[
         styles.tab,
         isFocused && styles.tabActive,
-        pressed && styles.tabPressed,
       ]}
       onPress={onPress}
       onLongPress={onLongPress}
@@ -241,7 +238,7 @@ function TabItem({
       >
         {tab.label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -340,9 +337,9 @@ export default function NavigationBar({
         })}
 
         {/* Profile tab */}
-        <Pressable
+        <PressableScale
           onPress={() => router.push('/(modals)/profile')}
-          style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+          style={styles.tab}
           accessibilityRole="tab"
           accessibilityLabel="Profile"
         >
@@ -355,7 +352,7 @@ export default function NavigationBar({
           >
             Profile
           </Text>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );

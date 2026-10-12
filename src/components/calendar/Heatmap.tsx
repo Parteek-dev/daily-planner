@@ -359,10 +359,8 @@ const makeMobileStyles = (tokens: ThemeTokens) =>
     navBtn: {
       width: 44,
       height: 44,
-      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: tokens.bgInput,
     },
     navBtnDisabled: {
       opacity: 0.3,
@@ -690,7 +688,7 @@ export default function Heatmap({ data }: HeatmapProps) {
     return (
       <View
         onLayout={onCardLayout}
-        style={[styles.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}
+        style={[styles.card, { backgroundColor: tokens.bgPrimary, borderWidth: 1, borderColor: tokens.borderPrimary }]}
       >
         <Text style={[styles.title, { color: tokens.textMuted }]}>Activity (last 12 months)</Text>
         <View style={styles.emptyWrap}>
@@ -705,7 +703,7 @@ export default function Heatmap({ data }: HeatmapProps) {
   return (
     <View
       onLayout={onCardLayout}
-      style={[styles.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}
+      style={[styles.card, { backgroundColor: tokens.bgPrimary, borderWidth: 1, borderColor: tokens.borderPrimary }]}
     >
       {!isWide ? (
         /* ── Mobile: monthly calendar view ─────────────────────────────────── */
@@ -775,8 +773,17 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+      web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+    }),
   },
   header: {
     flexDirection: 'row',

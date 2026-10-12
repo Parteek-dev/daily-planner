@@ -12,7 +12,7 @@
  * Requirements: 11.1–11.8
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ import {
   StatusBar,
   Platform,
   TextInput,
+  PanResponder,
+  Modal,
 } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -43,6 +45,8 @@ import {
   Link,
   Minimize2,
   Maximize2,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react-native'
 
 import { usePomodoroMini } from '@/src/context/PomodoroMiniContext'
@@ -74,7 +78,7 @@ const MODE_CONFIG = {
   },
 } as const
 
-// ── Number stepper input ───────────────────────────────────────────────────────
+// ── Number stepper input with scroll/swipe support ─────────────────────────────
 
 function MinuteInput({
   label,
@@ -87,43 +91,155 @@ function MinuteInput({
   onChange: (v: number) => void
   tokens: ReturnType<typeof useTheme>['tokens']
 }) {
+  const wrapperRef = useRef<View>(null)
+  const valueRef = useRef(value)
+
+  // Keep ref in sync with value for pan responder
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+
+  // Handle wheel scroll to increment/decrement value (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+
+    const node = wrapperRef.current as any
+    if (!node) return
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -1 : 1
+      const newValue = Math.max(1, Math.min(120, valueRef.current + delta))
+      if (newValue !== valueRef.current) onChange(newValue)
+    }
+
+    node.addEventListener?.('wheel', handleWheel, { passive: false })
+    return () => node.removeEventListener?.('wheel', handleWheel)
+  }, [onChange])
+
+  // Pan responder for mobile swipe gestures
+  const panResponder = useMemo(() => {
+    let lastValue = value
+    let accumulatedDelta = 0
+    const SWIPE_THRESHOLD = 15
+
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => Platform.OS !== 'web',
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Platform.OS !== 'web' && Math.abs(gesture.dy) > 5,
+      onPanResponderGrant: () => {
+        lastValue = valueRef.current
+        accumulatedDelta = 0
+      },
+      onPanResponderMove: (_, gesture) => {
+        const deltaY = -gesture.dy
+        accumulatedDelta = deltaY
+        const steps = Math.floor(accumulatedDelta / SWIPE_THRESHOLD)
+        const newValue = Math.max(1, Math.min(120, lastValue + steps))
+        if (newValue !== valueRef.current) {
+          onChange(newValue)
+        }
+      },
+      onPanResponderRelease: () => {
+        accumulatedDelta = 0
+      },
+    })
+  }, [onChange])
+
+  const increment = useCallback(() => {
+    const newValue = Math.min(120, value + 1)
+    if (newValue !== value) onChange(newValue)
+  }, [value, onChange])
+
+  const decrement = useCallback(() => {
+    const newValue = Math.max(1, value - 1)
+    if (newValue !== value) onChange(newValue)
+  }, [value, onChange])
+
   return (
     <View style={inputStyles.wrapper}>
       <Text style={[inputStyles.label, { color: tokens.textMuted }]}>{label}</Text>
-      <TextInput
-        value={String(value)}
-        onChangeText={t => {
-          const n = parseInt(t, 10)
-          if (!isNaN(n) && n >= 1 && n <= 120) onChange(n)
-        }}
-        keyboardType="number-pad"
-        style={[
-          inputStyles.input,
-          {
-            color: tokens.textPrimary,
-            backgroundColor: tokens.bgSecondary,
-            borderColor: tokens.borderPrimary,
-          },
-          Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {},
-        ]}
-        maxLength={3}
-        accessibilityLabel={`${label} minutes`}
-      />
+      <View style={inputStyles.stepperContainer}>
+        {/* Increment button */}
+        <Pressable
+          onPress={increment}
+          style={inputStyles.stepperBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Increase ${label}`}
+        >
+          <ChevronUp size={18} color={tokens.textMuted} />
+        </Pressable>
+
+        {/* Input with swipe support */}
+        <View
+          ref={wrapperRef}
+          {...panResponder.panHandlers}
+          style={[
+            inputStyles.inputWrapper,
+            {
+              backgroundColor: tokens.bgSecondary,
+              borderColor: tokens.borderPrimary,
+            },
+            Platform.OS === 'web' ? ({ cursor: 'ns-resize' } as any) : {},
+          ]}
+        >
+          <TextInput
+            value={String(value)}
+            onChangeText={t => {
+              const n = parseInt(t, 10)
+              if (!isNaN(n) && n >= 1 && n <= 120) onChange(n)
+            }}
+            keyboardType="number-pad"
+            style={[
+              inputStyles.input,
+              { color: tokens.textPrimary },
+              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {},
+            ]}
+            maxLength={3}
+            accessibilityLabel={`${label} minutes`}
+          />
+        </View>
+
+        {/* Decrement button */}
+        <Pressable
+          onPress={decrement}
+          style={inputStyles.stepperBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Decrease ${label}`}
+        >
+          <ChevronDown size={18} color={tokens.textMuted} />
+        </Pressable>
+      </View>
     </View>
   )
 }
 
 const inputStyles = StyleSheet.create({
-  wrapper: { flex: 1, alignItems: 'center', gap: 4 },
+  wrapper: { flex: 1, alignItems: 'center', gap: 6 },
   label: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  stepperContainer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepperBtn: {
+    width: '100%',
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inputWrapper: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 10,
+  },
   input: {
     width: '100%',
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '600',
-    borderWidth: 1,
-    borderRadius: 10,
     paddingVertical: 10,
+    backgroundColor: 'transparent',
   },
 })
 
@@ -219,24 +335,34 @@ export default function PomodoroModal() {
 
 
   // SVG ring
-  const RING = 160
-  const RADIUS = 66
+  const RING = 180
+  const RADIUS = 76
   const CIRC = 2 * Math.PI * RADIUS
   const offset = CIRC - (progress / 100) * CIRC
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: tokens.bgPrimary }]}>
-      <StatusBar barStyle="dark-content" />
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+      statusBarTranslucent
+    >
+      <View style={s.overlay}>
+        <StatusBar barStyle="light-content" />
+        {/* Backdrop tap to close */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleClose}
+          accessibilityLabel="Close pomodoro timer"
+        />
 
-      {/* Full timer */}
-      <>
-        <ScrollView
-          contentContainerStyle={s.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ── Card wrapper (centers on wide screens) ── */}
-          <View style={s.card}>
+        <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+          <ScrollView
+            contentContainerStyle={s.scroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
 
             {/* ── Header ── */}
             <View style={s.header}>
@@ -504,16 +630,16 @@ export default function PomodoroModal() {
             )}
 
             <View style={{ height: 24 }} />
-          </View>
-        </ScrollView>
-        <TimerAlert
-          alert={timerAlert}
-          onDismiss={dismissTimerAlert}
-          onStart={startNextPhase}
-        />
-      </>
+          </ScrollView>
 
-    </SafeAreaView>
+          <TimerAlert
+            alert={timerAlert}
+            onDismiss={dismissTimerAlert}
+            onStart={startNextPhase}
+          />
+        </View>
+      </View>
+    </Modal>
   )
 }
 
@@ -521,7 +647,13 @@ export default function PomodoroModal() {
 
 function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
   return StyleSheet.create({
-    safe: { flex: 1 },
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    },
     // Minimized state — fills screen, shows pip + hint
     minimizedOverlay: {
       flex: 1,
@@ -551,16 +683,22 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
       letterSpacing: 2,
     },
-    scroll: {
-      flexGrow: 1,
-      alignItems: 'center',
-      paddingVertical: 16,
-      paddingHorizontal: 16,
-    },
     card: {
       width: '100%',
-      maxWidth: 420,
+      maxWidth: 480,
+      borderRadius: 20,
+      borderWidth: 1,
+      overflow: 'hidden',
+      maxHeight: '90%',
+      ...Platform.select({
+        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
+        android: { elevation: 12 },
+        web: { boxShadow: '0 8px 24px rgba(0,0,0,0.15)' },
+      }),
+    },
+    scroll: {
       alignItems: 'center',
+      padding: 20,
     },
     // Header
     header: {
@@ -631,8 +769,8 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     modeLabel: { fontSize: 14, fontWeight: '600' },
     // Ring
     ringWrapper: {
-      width: 160,
-      height: 160,
+      width: 180,
+      height: 180,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 24,
@@ -643,10 +781,10 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       justifyContent: 'center',
     },
     timeDisplay: {
-      fontSize: 42,
+      fontSize: 36,
       fontWeight: '700',
       fontVariant: ['tabular-nums'],
-      letterSpacing: 2,
+      letterSpacing: 1,
     },
     // Controls
     controls: {

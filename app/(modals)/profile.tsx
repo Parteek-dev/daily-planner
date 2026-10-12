@@ -63,11 +63,11 @@ export default function ProfileScreen() {
   const styles = makeStyles(tokens)
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle="dark-content" />
 
       {/* Header — breadcrumb style matching settings/feedback */}
-      <View style={[styles.header, { borderBottomColor: tokens.borderPrimary }]}>
+      <View style={[styles.header, { backgroundColor: tokens.bgTertiary }]}>
         <Pressable
           onPress={handleClose}
           style={({ pressed }) => [
@@ -91,7 +91,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* User info card */}
-        <View style={[styles.userCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[styles.userCard, styles.cardElevated]}>
           <View style={[styles.avatarLarge, { backgroundColor: tokens.accentBlue }]}>
             <Text style={styles.avatarInitialLarge}>{initial}</Text>
           </View>
@@ -109,7 +109,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Menu items */}
-        <View style={[styles.menuSection, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[styles.menuSection, styles.cardElevated]}>
           {/* Settings */}
           <Pressable
             onPress={() => router.push('/(modals)/settings')}
@@ -120,8 +120,8 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
-            <View style={[styles.menuIconWrap, { backgroundColor: tokens.bgInput }]}>
-              <Settings size={18} color={tokens.textSecondary} />
+            <View style={[styles.menuIconWrap, { backgroundColor: `${tokens.accentBlue}15` }]}>
+              <Settings size={18} color={tokens.accentBlue} />
             </View>
             <Text style={[styles.menuLabel, { color: tokens.textPrimary }]}>Settings</Text>
             <ChevronRight size={18} color={tokens.textMuted} />
@@ -139,8 +139,8 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel="Feedback"
           >
-            <View style={[styles.menuIconWrap, { backgroundColor: tokens.bgInput }]}>
-              <MessageSquare size={18} color={tokens.textSecondary} />
+            <View style={[styles.menuIconWrap, { backgroundColor: `${tokens.accentGreen}15` }]}>
+              <MessageSquare size={18} color={tokens.accentGreen} />
             </View>
             <Text style={[styles.menuLabel, { color: tokens.textPrimary }]}>Feedback</Text>
             <ChevronRight size={18} color={tokens.textMuted} />
@@ -148,7 +148,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Sign Out */}
-        <View style={[styles.menuSection, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[styles.menuSection, styles.cardElevated]}>
           <Pressable
             onPress={handleSignOut}
             style={({ pressed }) => [
@@ -177,13 +177,28 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     safe: {
       flex: 1,
     },
+    // Elevated card style (white background + shadow)
+    cardElevated: {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+        },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+      }),
+    },
     // Header — breadcrumb style matching settings/feedback
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
       gap: 8,
     },
     backBtn: {
@@ -219,7 +234,6 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       alignItems: 'center',
       padding: 16,
       borderRadius: 16,
-      borderWidth: 1,
       gap: 14,
     },
     avatarLarge: {
@@ -259,7 +273,6 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     // Menu section
     menuSection: {
       borderRadius: 16,
-      borderWidth: 1,
       overflow: 'hidden',
     },
     menuItem: {

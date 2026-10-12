@@ -45,6 +45,7 @@ import {
   Flag,
   CalendarDays,
   CalendarCheck,
+  List,
 } from 'lucide-react-native'
 
 import { useAuth } from '@/src/hooks/useAuth'
@@ -56,6 +57,9 @@ import { useAddTaskModal } from '@/src/context/AddTaskModalContext'
 import DailyNotes from '@/src/components/DailyNotes'
 import { fmtDuration } from '@/src/lib/utils'
 import type { Task } from '@/src/lib/firestoreMappers'
+import { UnifiedTaskItem } from '@/src/components/task/UnifiedTaskItem'
+import { DayTimeline } from '@/src/components/task/DayTimeline'
+import { CrossfadeView } from '@/src/components/motion'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -317,17 +321,19 @@ interface DayPanelProps {
   readonly getTopicColor: (topic: string) => string
   readonly getNote: (date: string) => string
   readonly setNote: (date: string, text: string) => void
+  readonly onReschedule?: (id: string, newTime: string) => void
 }
 
 function DayPanel({
   selectedDate, tasks, tokens, onToggle, onEdit, onDelete, onAdd,
-  getTopicColor, getNote, setNote,
+  getTopicColor, getNote, setNote, onReschedule,
 }: DayPanelProps) {
   const ps = makePanelStyles(tokens)
+  const [panelViewMode, setPanelViewMode] = useState<'list' | 'timeline'>('list')
 
   if (!selectedDate) {
     return (
-      <View style={[ps.empty, { backgroundColor: tokens.bgSecondary }]}>
+      <View style={[ps.empty, { backgroundColor: tokens.bgPrimary }]}>
         <Text style={[ps.emptyText, { color: tokens.textMuted }]}>
           Select a date to see tasks
         </Text>
@@ -350,7 +356,7 @@ function DayPanel({
 
   return (
     <ScrollView
-      style={[ps.panel, { backgroundColor: tokens.bgSecondary }]}
+      style={[ps.panel, { backgroundColor: tokens.bgPrimary }]}
       contentContainerStyle={ps.content}
       showsVerticalScrollIndicator={false}
     >
@@ -360,14 +366,41 @@ function DayPanel({
           <Text style={[ps.dayLabel, { color: tokens.textMuted }]}>{dayName}</Text>
           <Text style={[ps.dateLabel, { color: tokens.textPrimary }]}>{dateName}</Text>
         </View>
-        <Pressable
-          onPress={onAdd}
-          style={[ps.addBtn, { backgroundColor: tokens.accentPrimaryMuted }]}
-          accessibilityRole="button"
-          accessibilityLabel="Add task for this date"
-        >
-          <Plus size={16} color={tokens.accentPrimary} />
-        </Pressable>
+        <View style={ps.panelActions}>
+          {/* View toggle */}
+          <View style={[ps.viewToggle, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+            <Pressable
+              onPress={() => setPanelViewMode('list')}
+              style={[
+                ps.viewToggleBtn,
+                panelViewMode === 'list' && { backgroundColor: tokens.bgPrimary },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="List view"
+            >
+              <List size={12} color={panelViewMode === 'list' ? tokens.accentPrimary : tokens.textMuted} />
+            </Pressable>
+            <Pressable
+              onPress={() => setPanelViewMode('timeline')}
+              style={[
+                ps.viewToggleBtn,
+                panelViewMode === 'timeline' && { backgroundColor: tokens.bgPrimary },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Timeline view"
+            >
+              <CalendarDays size={12} color={panelViewMode === 'timeline' ? tokens.accentPrimary : tokens.textMuted} />
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={onAdd}
+            style={[ps.addBtn, { backgroundColor: tokens.accentPrimaryMuted }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add task for this date"
+          >
+            <Plus size={16} color={tokens.accentPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Task list or empty state */}
@@ -378,110 +411,40 @@ function DayPanel({
           </Text>
         </View>
       ) : (
-        <View style={[ps.taskListCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
-          {sorted.map((task, idx) => {
-            const topicColor = getTopicColor(task.topic)
-            const hasSubtasks = task.subtasks && task.subtasks.length > 0
-            const completedSubs = task.subtasks?.filter(s => s.completed).length ?? 0
-            const overdue = isOverdue(task)
-            const timeLabel = formatTime(task.dueTime)
-            const isLast = idx === sorted.length - 1
-
-            return (
-              <Pressable
-                key={task.id}
-                onPress={() => onEdit(task.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit task: ${task.title}`}
-                style={[
-                  ps.taskItem,
-                  !isLast && { borderBottomWidth: 1, borderBottomColor: tokens.borderPrimary },
-                  { opacity: task.completed ? 0.6 : 1 },
-                ]}
-              >
-                {/* Time column */}
-                <View style={ps.timeColumn}>
-                  <Text style={[ps.timeText, { color: tokens.textSecondary }]}>
-                    {timeLabel || '—'}
-                  </Text>
-                </View>
-
-                {/* Accent bar */}
-                <View style={[ps.accentBar, { backgroundColor: topicColor }]} />
-
-                {/* Toggle */}
-                <Pressable
-                  onPress={() => onToggle(task.id)}
-                  hitSlop={8}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: task.completed }}
-                >
-                  {task.completed
-                    ? <CheckCircle2 size={20} color={tokens.accentGreen} />
-                    : <Circle size={20} color={tokens.textMuted} />}
-                </Pressable>
-
-                {/* Content */}
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View style={ps.badgeRow}>
-                    <View style={[ps.topicBadge, { backgroundColor: `${topicColor}20`, borderColor: `${topicColor}40` }]}>
-                      <Text style={[ps.topicBadgeText, { color: topicColor }]}>{task.topic}</Text>
-                    </View>
-                    {task.duration > 0 && (
-                      <View style={ps.metaItem}>
-                        <Clock size={10} color={tokens.textMuted} />
-                        <Text style={[ps.metaText, { color: tokens.textMuted }]}>
-                          {fmtDuration(task.duration)}
-                        </Text>
-                      </View>
-                    )}
-                    {task.recurrence && task.recurrence !== 'none' && (
-                      <Repeat size={10} color={tokens.accentPurple} />
-                    )}
-                    {hasSubtasks && (
-                      <View style={ps.metaItem}>
-                        <ListChecks size={10} color={tokens.textMuted} />
-                        <Text style={[ps.metaText, { color: tokens.textMuted }]}>
-                          {completedSubs}/{task.subtasks!.length}
-                        </Text>
-                      </View>
-                    )}
-                    {overdue && (
-                      <View style={[ps.overdueBadge, { backgroundColor: tokens.status.overdueBackground }]}>
-                        <Text style={[ps.overdueBadgeText, { color: tokens.accentRed }]}>Overdue</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[ps.taskTitle, {
-                      color: task.completed ? tokens.textMuted : tokens.textPrimary,
-                      textDecorationLine: task.completed ? 'line-through' : 'none',
-                    }]}
-                    numberOfLines={2}
-                  >
-                    {task.title}
-                  </Text>
-                </View>
-
-                {/* Actions */}
-                <View style={ps.taskActions}>
-                  <Pressable
-                    onPress={() => onDelete(task.id)}
-                    hitSlop={8}
-                    style={ps.actionBtn}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete ${task.title}`}
-                  >
-                    <Trash2 size={14} color={tokens.textMuted} />
-                  </Pressable>
-                </View>
-              </Pressable>
-            )
-          })}
-        </View>
+        <CrossfadeView viewKey={panelViewMode} duration="fast">
+          {panelViewMode === 'timeline' ? (
+            <View style={ps.timelineWrapper}>
+              <DayTimeline
+                tasks={sorted}
+                onToggle={onToggle}
+                onPress={onEdit}
+                onReschedule={onReschedule}
+                getTopicColor={getTopicColor}
+                hourHeight={72}
+                compact
+                hideUnscheduled={false}
+              />
+            </View>
+          ) : (
+            <View style={ps.taskList}>
+              {sorted.map((task, idx) => (
+                <UnifiedTaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={() => onToggle(task.id)}
+                  onPress={() => onEdit(task.id)}
+                  onDelete={() => onDelete(task.id)}
+                  getTopicColor={getTopicColor}
+                  showActions={true}
+                  isOverdue={isOverdue(task)}
+                  showSeparator={idx < sorted.length - 1}
+                />
+              ))}
+            </View>
+          )}
+        </CrossfadeView>
       )}
 
-      <DailyNotes date={selectedDate} note={note} onSave={setNote} />
     </ScrollView>
   )
 }
@@ -853,7 +816,8 @@ function MonthCalendarGrid({
 // ── Mobile week view ───────────────────────────────────────────────────────────
 
 function MobileWeekView({
-  tokens, styles, today, weekDays, effectiveWeekDay, weekDayTasks,
+  tokens, styles, today, weekDays, effectiveWeekDay, weekDayTasks, weekStart,
+  handlePrevWeek, handleNextWeek,
   setSelectedWeekDay, toggleTaskComplete, handleEdit, deleteTask, handleAdd,
   getTasksByDate, getTopicColor, getNote, setNote,
 }: Readonly<{
@@ -863,6 +827,9 @@ function MobileWeekView({
   weekDays: string[]
   effectiveWeekDay: string
   weekDayTasks: Task[]
+  weekStart: string
+  handlePrevWeek: () => void
+  handleNextWeek: () => void
   setSelectedWeekDay: (date: string) => void
   toggleTaskComplete: (id: string) => void
   handleEdit: (id: string) => void
@@ -876,7 +843,30 @@ function MobileWeekView({
   return (
     <View style={{ flex: 1 }}>
       {/* Week day strip wrapped in card like month view */}
-      <View style={[styles.weekDayStripCard, { backgroundColor: tokens.bgSecondary }]}>
+      <View style={[styles.weekDayStripCard, styles.cardElevated]}>
+        {/* Week navigation inside card */}
+        <View style={styles.monthNav}>
+          <Pressable
+            onPress={handlePrevWeek}
+            style={styles.navTextBtn}
+            accessibilityLabel="Previous week"
+          >
+            <Text style={[styles.navText, { color: tokens.accentPrimary }]}>‹</Text>
+          </Pressable>
+
+          <Text style={[styles.mobileMonthLabel, { color: tokens.textSecondary }]}>
+            {formatMonthRange(weekStart)}
+          </Text>
+
+          <Pressable
+            onPress={handleNextWeek}
+            style={styles.navTextBtn}
+            accessibilityLabel="Next week"
+          >
+            <Text style={[styles.navText, { color: tokens.accentPrimary }]}>›</Text>
+          </Pressable>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -909,7 +899,7 @@ function MobileWeekView({
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.weekContent} showsVerticalScrollIndicator={false}>
-        <View style={[styles.inlineDayPanel, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[styles.inlineDayPanel, styles.cardElevated]}>
           <DayPanel
             selectedDate={effectiveWeekDay}
             tasks={weekDayTasks}
@@ -1103,48 +1093,20 @@ function MobileCalendarLayout(props: Readonly<CalendarLayoutProps>) {
   } = props
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle="dark-content" />
 
       <GestureDetector gesture={swipeGesture}>
         <View style={{ flex: 1 }}>
-          {/* Mobile header — two rows */}
-          <View style={[styles.mobileHeaderWrap, { borderBottomColor: tokens.borderPrimary }]}>
+          {/* Mobile header */}
+          <View style={[styles.mobileHeaderWrap, { backgroundColor: tokens.bgTertiary }]}>
             {/* Row 1: Calendar title */}
             <Text style={[styles.mobileHeaderTitle, { color: tokens.textPrimary }]}>Calendar</Text>
-            {/* Row 2: Nav + Month/year + toggle */}
+            {/* Row 2: Label on left, Toggle on right */}
             <View style={styles.mobileHeaderRow}>
-              <View style={styles.mobileNavRow}>
-                <Pressable
-                  onPress={viewMode === 'month' ? handlePrevMonth : handlePrevWeek}
-                  style={styles.navTextBtn}
-                  accessibilityLabel="Previous"
-                >
-                  <Text style={[styles.navText, { color: tokens.textMuted }]}>‹</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setYear(todayDate.getFullYear())
-                    setMonth(todayDate.getMonth())
-                    setSelectedDate(today)
-                    setWeekOffset(() => 0)
-                    setSelectedWeekDay(today)
-                  }}
-                >
-                  <Text style={[styles.mobileSubtitle, { color: tokens.textSecondary }]}>
-                    {viewMode === 'month'
-                      ? `${MONTH_NAMES[month]} ${year}`
-                      : formatMonthRange(weekStart)}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={viewMode === 'month' ? handleNextMonth : handleNextWeek}
-                  style={styles.navTextBtn}
-                  accessibilityLabel="Next"
-                >
-                  <Text style={[styles.navText, { color: tokens.textMuted }]}>›</Text>
-                </Pressable>
-              </View>
+              <Text style={[styles.mobileHeaderSubtitle, { color: tokens.textMuted }]}>
+                Your schedule at a glance
+              </Text>
               <MobileViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
             </View>
           </View>
@@ -1156,7 +1118,40 @@ function MobileCalendarLayout(props: Readonly<CalendarLayoutProps>) {
               keyboardShouldPersistTaps="handled"
             >
               {/* Compact calendar grid for mobile */}
-              <View style={[styles.mobileCalCard, { backgroundColor: tokens.bgSecondary }]}>
+              <View style={[styles.mobileCalCard, styles.cardElevated]}>
+                {/* Month navigation inside card */}
+                <View style={styles.monthNav}>
+                  <Pressable
+                    onPress={handlePrevMonth}
+                    style={styles.navTextBtn}
+                    accessibilityLabel="Previous month"
+                  >
+                    <Text style={[styles.navText, { color: tokens.accentPrimary }]}>‹</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      setYear(todayDate.getFullYear())
+                      setMonth(todayDate.getMonth())
+                      setSelectedDate(today)
+                    }}
+                    style={styles.monthLabelBtn}
+                    accessibilityLabel={`${MONTH_NAMES[month]} ${year}, tap to go to today`}
+                  >
+                    <Text style={[styles.mobileMonthLabel, { color: tokens.textSecondary }]}>
+                      {MONTH_NAMES[month]} {year}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={handleNextMonth}
+                    style={styles.navTextBtn}
+                    accessibilityLabel="Next month"
+                  >
+                    <Text style={[styles.navText, { color: tokens.accentPrimary }]}>›</Text>
+                  </Pressable>
+                </View>
+
                 {/* Day-of-week header row */}
                 <View style={styles.dowRow}>
                   {DOW_LABELS.map(d => (
@@ -1184,10 +1179,7 @@ function MobileCalendarLayout(props: Readonly<CalendarLayoutProps>) {
 
               {/* Inline day panel */}
               {Boolean(selectedDate) && (
-                <View style={[styles.inlineDayPanel, {
-                  backgroundColor: tokens.bgSecondary,
-                  borderColor: tokens.borderPrimary,
-                }]}>
+                <View style={[styles.inlineDayPanel, styles.cardElevated]}>
                   <DayPanel
                     selectedDate={selectedDate}
                     tasks={selectedTasks}
@@ -1202,11 +1194,20 @@ function MobileCalendarLayout(props: Readonly<CalendarLayoutProps>) {
                   />
                 </View>
               )}
+
+              {/* Daily Notes - separate from the day panel card */}
+              {Boolean(selectedDate) && (
+                <View style={styles.dailyNotesWrapper}>
+                  <DailyNotes date={selectedDate!} note={getNote(selectedDate!)} onSave={setNote} />
+                </View>
+              )}
             </ScrollView>
           ) : (
             <MobileWeekView
               tokens={tokens} styles={styles} today={today} weekDays={weekDays}
               effectiveWeekDay={effectiveWeekDay} weekDayTasks={weekDayTasks}
+              weekStart={weekStart}
+              handlePrevWeek={handlePrevWeek} handleNextWeek={handleNextWeek}
               setSelectedWeekDay={setSelectedWeekDay} toggleTaskComplete={toggleTaskComplete}
               handleEdit={handleEdit} deleteTask={deleteTask} handleAdd={handleAdd}
               getTasksByDate={getTasksByDate} getTopicColor={getTopicColor}
@@ -1440,6 +1441,21 @@ function makePanelStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       alignItems: 'flex-start',
       marginBottom: tokens.spacing.lg,
     },
+    panelActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    viewToggle: {
+      flexDirection: 'row',
+      borderRadius: 8,
+      borderWidth: 1,
+      padding: 2,
+    },
+    viewToggleBtn: {
+      padding: 5,
+      borderRadius: 6,
+    },
     dayLabel: { fontSize: 12, marginBottom: 2 },
     dateLabel: { fontSize: 18, fontWeight: '700' },
     addBtn: {
@@ -1455,6 +1471,20 @@ function makePanelStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       alignItems: 'center',
     },
     emptyScheduleText: { fontSize: 14, fontWeight: '500' },
+    // Task list (using UnifiedTaskItem)
+    taskList: {
+      gap: 0,
+      marginBottom: tokens.spacing.md,
+    },
+    // Timeline wrapper
+    timelineWrapper: {
+      flex: 1,
+      minHeight: 400,
+      maxHeight: 500,
+      marginBottom: tokens.spacing.md,
+      marginHorizontal: -tokens.spacing.md,
+      overflow: 'hidden',
+    },
     // "Select a date" fallback
     empty: {
       flex: 1,
@@ -1565,6 +1595,10 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       fontSize: 14,
       fontWeight: '500',
     },
+    mobileHeaderSubtitle: {
+      fontSize: 13,
+      fontWeight: '400',
+    },
     mobileHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -1619,7 +1653,7 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     },
 
     // ── Mobile content ──
-    mobileContent: { paddingBottom: tokens.spacing.xxxl },
+    mobileContent: { paddingBottom: 120 },
     mobileCardWrap: {
       paddingHorizontal: tokens.spacing.lg,
       paddingTop: tokens.spacing.lg,
@@ -1629,15 +1663,35 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       marginTop: tokens.spacing.sm,
       paddingVertical: tokens.spacing.sm,
       paddingHorizontal: tokens.spacing.xs,
-      borderRadius: tokens.radius.md,
+      borderRadius: tokens.radius.lg,
     },
     inlineDayPanel: {
       marginHorizontal: tokens.spacing.sm,
       marginTop: tokens.spacing.md,
-      marginBottom: tokens.spacing.lg,
+      marginBottom: 0,
       borderRadius: tokens.radius.xl,
-      borderWidth: 1,
       overflow: 'hidden',
+    },
+    dailyNotesWrapper: {
+      marginHorizontal: tokens.spacing.sm,
+      marginBottom: tokens.spacing.lg,
+    },
+
+    // ── Elevated card style (white background + shadow) ──
+    cardElevated: {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+        },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+      }),
     },
 
     // ── Calendar card container ──
@@ -1699,6 +1753,10 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       fontSize: 12,
       fontWeight: '600',
       letterSpacing: 1.2,
+    },
+    mobileMonthLabel: {
+      fontSize: 14,
+      fontWeight: '600',
     },
     // Today chip — used in week view and mobile header
     todayChip: {
@@ -1871,7 +1929,7 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       marginHorizontal: tokens.spacing.sm,
       marginTop: tokens.spacing.sm,
       paddingVertical: tokens.spacing.sm,
-      borderRadius: tokens.radius.md,
+      borderRadius: tokens.radius.lg,
     },
     weekDayStrip: {
       paddingHorizontal: tokens.spacing.sm,
@@ -1886,7 +1944,7 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       paddingBottom: tokens.spacing.xl,
     },
     weekTaskList: { padding: tokens.spacing.lg },
-    weekContent: { paddingBottom: tokens.spacing.xxxl },
+    weekContent: { paddingBottom: 120 },
     weekDayHeadingRow: {
       flexDirection: 'row',
       alignItems: 'center',

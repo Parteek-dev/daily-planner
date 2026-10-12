@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Platform } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import { Zap, Flame, Target, CheckCircle2 } from 'lucide-react-native'
 import { useTheme } from '@/src/hooks/useTheme'
@@ -121,12 +121,18 @@ export default function ProductivityScore({
 function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
   return StyleSheet.create({
     card: {
-      backgroundColor: tokens.bgSecondary,
+      backgroundColor: tokens.bgPrimary,
       borderRadius: 16,
       padding: 16,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: 1,
       borderColor: tokens.borderPrimary,
-    },
+      ...(Platform.OS === 'web'
+        ? { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+        : Platform.OS === 'ios'
+          ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+          : { elevation: 2 }
+      ),
+    } as any,
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',

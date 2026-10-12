@@ -23,6 +23,7 @@ import {
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
+  Modal,
 } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import Constants from 'expo-constants'
@@ -66,15 +67,16 @@ import ConfirmModal from '@/src/components/ConfirmModal'
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'appearance', label: 'Appearance', Icon: Palette },
-  { id: 'accessibility', label: 'Accessibility', Icon: Sliders },
-  { id: 'notifications', label: 'Notifications', Icon: Bell },
-  { id: 'data', label: 'Data', Icon: Database },
-  { id: 'archive', label: 'Archive', Icon: ArchiveIcon },
-  { id: 'about', label: 'About', Icon: Info },
+  { id: 'appearance', label: 'Appearance', Icon: Palette, colorKey: 'accentPurple' },
+  { id: 'accessibility', label: 'Accessibility', Icon: Sliders, colorKey: 'accentOrange' },
+  { id: 'notifications', label: 'Notifications', Icon: Bell, colorKey: 'accentBlue' },
+  { id: 'data', label: 'Data', Icon: Database, colorKey: 'accentGreen' },
+  { id: 'archive', label: 'Archive', Icon: ArchiveIcon, colorKey: 'accentOrange' },
+  { id: 'about', label: 'About', Icon: Info, colorKey: 'accentBlue' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
+type ColorKey = 'accentPurple' | 'accentOrange' | 'accentBlue' | 'accentGreen' | 'accentRed'
 
 const WIDE_BREAKPOINT = 600
 
@@ -98,7 +100,7 @@ function AppearanceTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tokens
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Theme Mode card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${tokens.accentBlue}15` }]}>
             <Palette size={16} color={tokens.accentBlue} />
@@ -138,7 +140,7 @@ function AppearanceTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tokens
       </View>
 
       {/* Accent Color card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${accentColor}15` }]}>
             <View style={[ts.colorDot, { backgroundColor: accentColor }]} />
@@ -175,7 +177,7 @@ function AppearanceTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tokens
       </View>
 
       {/* Custom Color card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${tokens.accentPurple}15` }]}>
             <Sliders size={16} color={tokens.accentPurple} />
@@ -239,7 +241,7 @@ function AccessibilityTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tok
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Reduce Animations card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <Pressable
           onPress={() => setReduceMotion(!reduceMotion)}
           style={({ pressed }) => [
@@ -275,7 +277,7 @@ function AccessibilityTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tok
       </View>
 
       {/* Task Title Size card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${tokens.accentBlue}15` }]}>
             <Sliders size={16} color={tokens.accentBlue} />
@@ -368,7 +370,7 @@ function NotificationsTab({ tokens }: { tokens: ReturnType<typeof useTheme>['tok
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Task Reminders card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <Pressable
           onPress={isBlocked ? undefined : handleToggle}
           disabled={isBlocked}
@@ -564,7 +566,7 @@ function DataTab({
   return (
     <>
       {/* Export/Import card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         {rows.map((row, index) => (
           <React.Fragment key={row.label}>
             {index > 0 && <View style={[ts.dataRowDivider, { backgroundColor: tokens.borderPrimary }]} />}
@@ -592,7 +594,7 @@ function DataTab({
       </View>
 
       {/* Reset card — separate for destructive action */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <Pressable
           onPress={resetting ? undefined : handleResetClick}
           disabled={resetting}
@@ -700,7 +702,7 @@ function ArchiveTab({ tokens, archivedTasks, onRestore, onDelete, onArchiveOld, 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* Auto-archive card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${tokens.accentBlue}15` }]}>
             <ArchiveIcon size={16} color={tokens.accentBlue} />
@@ -734,7 +736,7 @@ function ArchiveTab({ tokens, archivedTasks, onRestore, onDelete, onArchiveOld, 
 
       {/* Search card (only if there are tasks) */}
       {archivedTasks.length > 0 && (
-        <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
           <View style={[ts.archiveSearchRow, { backgroundColor: tokens.bgInput, borderColor: tokens.borderPrimary }]}>
             <Search size={16} color={tokens.textMuted} />
             <TextInput
@@ -757,7 +759,7 @@ function ArchiveTab({ tokens, archivedTasks, onRestore, onDelete, onArchiveOld, 
 
       {/* Task list or empty state */}
       {filteredTasks.length === 0 ? (
-        <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
           <View style={ts.archiveEmptyState}>
             <ArchiveIcon size={40} color={tokens.textMuted} strokeWidth={1.5} />
             <Text style={[ts.archiveEmptyText, { color: tokens.textMuted }]}>
@@ -768,7 +770,7 @@ function ArchiveTab({ tokens, archivedTasks, onRestore, onDelete, onArchiveOld, 
           </View>
         </View>
       ) : (
-        <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary, padding: 0, overflow: 'hidden' }]}>
+        <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary, padding: 0, overflow: 'hidden' }]}>
           <View style={ts.archiveHeader}>
             <Text style={[ts.archiveHeaderText, { color: tokens.textPrimary }]}>
               Archived Tasks
@@ -888,20 +890,19 @@ function AboutTab({
   return (
     <>
       {/* Version info card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         <View style={ts.dataRow}>
           <View style={[ts.dataRowIcon, { backgroundColor: `${tokens.accentBlue}15` }]}>
             <Info size={16} color={tokens.accentBlue} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[ts.dataRowLabel, { color: tokens.textPrimary }]}>Daily Planner v{version}</Text>
-            <Text style={[ts.dataRowSub, { color: tokens.textMuted }]}>Built with Expo · Firebase · React Native</Text>
           </View>
         </View>
       </View>
 
       {/* Account card */}
-      <View style={[ts.dataCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[ts.dataCard, { backgroundColor: tokens.bgPrimary, borderColor: tokens.borderPrimary }]}>
         {user && !isGuest && (
           <>
             <View style={ts.dataRow}>
@@ -1131,6 +1132,11 @@ const ts = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 2 },
+      web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+    }),
   },
   dataRow: {
     flexDirection: 'row',
@@ -1414,10 +1420,22 @@ export default function SettingsModal() {
 
   if (isWide) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgPrimary }]}>
-        <StatusBar barStyle="dark-content" />
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        onRequestClose={() => router.back()}
+        statusBarTranslucent
+      >
+        <View style={styles.overlay}>
+          <StatusBar barStyle="light-content" />
+          {/* Backdrop tap to close */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => router.back()}
+            accessibilityLabel="Close settings"
+          />
 
-        <View style={styles.wideRoot}>
           <View style={[styles.wideCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
 
             {/* Card header */}
@@ -1440,8 +1458,9 @@ export default function SettingsModal() {
             <View style={styles.cardBody}>
               {/* Left tab list */}
               <View style={[styles.tabList, { borderRightColor: tokens.borderPrimary }]}>
-                {TABS.map(({ id, label, Icon }) => {
+                {TABS.map(({ id, label, Icon, colorKey }) => {
                   const active = activeTab === id
+                  const iconColor = tokens[colorKey as keyof typeof tokens] as string
                   return (
                     <Pressable
                       key={id}
@@ -1454,7 +1473,7 @@ export default function SettingsModal() {
                       accessibilityRole="tab"
                       accessibilityState={{ selected: active }}
                     >
-                      <Icon size={15} color={active ? '#fff' : tokens.textSecondary} />
+                      <Icon size={15} color={active ? '#fff' : iconColor} />
                       <Text style={[styles.tabLabel, { color: active ? '#fff' : tokens.textSecondary, fontWeight: active ? '600' : '400' }]}>
                         {label}
                       </Text>
@@ -1473,7 +1492,7 @@ export default function SettingsModal() {
             </View>
           </View>
         </View>
-      </SafeAreaView>
+      </Modal>
     )
   }
 
@@ -1493,11 +1512,11 @@ export default function SettingsModal() {
   }, [router])
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle="dark-content" />
 
       {/* Mobile header — breadcrumb style */}
-      <View style={[styles.mobileHeader, { borderBottomColor: tokens.borderPrimary }]}>
+      <View style={[styles.mobileHeader, { backgroundColor: tokens.bgTertiary, borderBottomColor: tokens.borderPrimary }]}>
         <Pressable
           onPress={() => mobileScreen === 'list' ? handleClose() : setMobileScreen('list')}
           style={({ pressed }) => [
@@ -1540,28 +1559,31 @@ export default function SettingsModal() {
           showsVerticalScrollIndicator={false}
         >
           {/* Tab menu section — no profile card */}
-          <View style={[styles.mobileMenuSection, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
-            {TABS.map(({ id, label, Icon }, index) => (
-              <React.Fragment key={id}>
-                {index > 0 && (
-                  <View style={[styles.mobileMenuDivider, { backgroundColor: tokens.borderPrimary }]} />
-                )}
-                <Pressable
-                  onPress={() => setMobileScreen(id)}
-                  style={({ pressed }) => [
-                    styles.mobileMenuItem,
-                    pressed && { backgroundColor: tokens.bgInput },
-                  ]}
-                  accessibilityRole="button"
-                >
-                  <View style={[styles.mobileMenuIconWrap, { backgroundColor: tokens.bgInput }]}>
-                    <Icon size={18} color={tokens.textSecondary} />
-                  </View>
-                  <Text style={[styles.mobileMenuLabel, { color: tokens.textPrimary }]}>{label}</Text>
-                  <ChevronRight size={18} color={tokens.textMuted} />
-                </Pressable>
-              </React.Fragment>
-            ))}
+          <View style={[styles.mobileMenuSection, styles.cardElevated]}>
+            {TABS.map(({ id, label, Icon, colorKey }, index) => {
+              const iconColor = tokens[colorKey as keyof typeof tokens] as string
+              return (
+                <React.Fragment key={id}>
+                  {index > 0 && (
+                    <View style={[styles.mobileMenuDivider, { backgroundColor: tokens.borderPrimary }]} />
+                  )}
+                  <Pressable
+                    onPress={() => setMobileScreen(id)}
+                    style={({ pressed }) => [
+                      styles.mobileMenuItem,
+                      pressed && { backgroundColor: tokens.bgInput },
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <View style={[styles.mobileMenuIconWrap, { backgroundColor: `${iconColor}15` }]}>
+                      <Icon size={18} color={iconColor} />
+                    </View>
+                    <Text style={[styles.mobileMenuLabel, { color: tokens.textPrimary }]}>{label}</Text>
+                    <ChevronRight size={18} color={tokens.textMuted} />
+                  </Pressable>
+                </React.Fragment>
+              )
+            })}
           </View>
         </ScrollView>
       ) : (
@@ -1582,9 +1604,20 @@ export default function SettingsModal() {
 function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
   return StyleSheet.create({
     safe: { flex: 1 },
-    // Wide
-    wideRoot: {
+    cardElevated: {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...Platform.select({
+        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+      }),
+    },
+    // Wide - transparent overlay
+    overlay: {
       flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,

@@ -77,7 +77,17 @@ function BestHoursChartRN({ tokens, data, analysis, flex }: any) {
   const peakAmPm = peakH !== undefined ? (peakH < 12 ? 'AM' : 'PM') : null
 
   return (
-    <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }, flex && { flex: 1 }]}>
+    <View style={[s.card, {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...(Platform.OS === 'ios'
+        ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+        : Platform.OS === 'android'
+          ? { elevation: 2 }
+          : { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+      ),
+    } as any, flex && { flex: 1 }]}>
       <View style={s.cardHeaderRow}>
         <Clock size={14} color={tokens.accentPurple ?? '#a855f7'} />
         <Text style={[s.sectionTitle, { color: tokens.textSecondary, flex: 1 }]}>Most productive time</Text>
@@ -176,11 +186,21 @@ function TopicBalanceRN({ tokens, data, analysis, getTopicColor, flex }: any) {
 
   if (!totalTasks) {
     return (
-      <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }, flex && { flex: 1 }]}>
+      <View style={[s.card, {
+        backgroundColor: tokens.bgPrimary,
+        borderWidth: 1,
+        borderColor: tokens.borderPrimary,
+        ...(Platform.OS === 'ios'
+          ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+          : Platform.OS === 'android'
+            ? { elevation: 2 }
+            : { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+        ),
+      } as any, flex && { flex: 1 }]}>
         <View style={s.cardHeaderRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <PieChart size={16} color={tokens.accentGreen} />
-            <Text style={[s.tbCardTitle, { color: tokens.textPrimary }]}>Topic Balance</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <PieChart size={14} color={tokens.accentGreen} />
+            <Text style={[s.sectionTitle, { color: tokens.textSecondary }]}>Topic Balance</Text>
           </View>
         </View>
         <View style={[s.emptyState, { backgroundColor: tokens.bgInput }]}>
@@ -206,12 +226,22 @@ function TopicBalanceRN({ tokens, data, analysis, getTopicColor, flex }: any) {
   const mins = totalTime % 60
 
   return (
-    <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }, flex && { flex: 1 }]}>
+    <View style={[s.card, {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...(Platform.OS === 'ios'
+        ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+        : Platform.OS === 'android'
+          ? { elevation: 2 }
+          : { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+      ),
+    } as any, flex && { flex: 1 }]}>
       {/* Header with toggle */}
       <View style={[s.cardHeaderRow, { marginBottom: 16 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-          <PieChart size={16} color={tokens.accentGreen} />
-          <Text style={[s.tbCardTitle, { color: tokens.textPrimary }]}>Topic Balance</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+          <PieChart size={14} color={tokens.accentGreen} />
+          <Text style={[s.sectionTitle, { color: tokens.textSecondary }]}>Topic Balance</Text>
         </View>
         <SegmentedToggle
           options={[
@@ -239,21 +269,21 @@ function TopicBalanceRN({ tokens, data, analysis, getTopicColor, flex }: any) {
           <Circle cx={50} cy={50} r={26} fill={tokens.bgSecondary} />
           {mode === 'time' ? (
             <>
-              <SvgText x={50} y={hours > 0 && mins > 0 ? 46 : 52} textAnchor="middle" fill={tokens.textPrimary} fontSize={12} fontWeight="700">
+              <SvgText x={50} y={hours > 0 && mins > 0 ? 46 : 52} textAnchor="middle" fill={tokens.textPrimary} fontSize={12} fontWeight="700" fontFamily="System">
                 {hours > 0 ? `${hours}h` : `${mins}m`}
               </SvgText>
               {hours > 0 && mins > 0 && (
-                <SvgText x={50} y={60} textAnchor="middle" fill={tokens.textPrimary} fontSize={12} fontWeight="700">
+                <SvgText x={50} y={60} textAnchor="middle" fill={tokens.textPrimary} fontSize={12} fontWeight="700" fontFamily="System">
                   {mins}m
                 </SvgText>
               )}
             </>
           ) : (
             <>
-              <SvgText x={50} y={46} textAnchor="middle" fill={tokens.textPrimary} fontSize={14} fontWeight="700">
+              <SvgText x={50} y={46} textAnchor="middle" fill={tokens.textPrimary} fontSize={14} fontWeight="700" fontFamily="System">
                 {totalTasks}
               </SvgText>
-              <SvgText x={50} y={60} textAnchor="middle" fill={tokens.textMuted} fontSize={8}>
+              <SvgText x={50} y={60} textAnchor="middle" fill={tokens.textMuted} fontSize={8} fontFamily="System">
                 Total
               </SvgText>
             </>
@@ -301,7 +331,17 @@ function TimeTrackingCard({ tokens, stats, getTopicColor, flex }: any) {
       : `You typically finish ${Math.abs(averageVariance)}m early`
 
   return (
-    <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }, flex && { flex: 1 }]}>
+    <View style={[s.card, {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...(Platform.OS === 'ios'
+        ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+        : Platform.OS === 'android'
+          ? { elevation: 2 }
+          : { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+      ),
+    } as any, flex && { flex: 1 }]}>
       <View style={s.cardHeaderRow}>
         <Clock size={14} color={tokens.accentBlue} />
         <Text style={[s.sectionTitle, { color: tokens.textSecondary }]}>Time Tracking</Text>
@@ -498,69 +538,73 @@ export default function AnalyticsScreen() {
     })), [bestHoursAnalysis.hourlyData])
 
   return (
-    <SafeAreaView style={[st.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[st.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle={tokens.bgPrimary === '#0f172a' || tokens.bgPrimary === '#ffffff' ? 'dark-content' : 'light-content'} />
 
       <ScrollView style={st.scroll} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-        <View style={st.header}>
+        {/* Page header */}
+        <View style={[st.header, !isMobile && st.webContent]}>
           <View>
             <Text style={[st.pageTitle, { color: tokens.textPrimary }]}>Analytics</Text>
             <Text style={[st.pageSubtitle, { color: tokens.textSecondary }]}>Detailed insights and statistics</Text>
           </View>
         </View>
 
-        <View style={[st.tabBar, { backgroundColor: tokens.bgInput }]}>
-          {TABS.map(({ id, label, Icon }) => {
-            const active = activeTab === id
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setActiveTab(id)}
-                style={({ pressed }) => [
-                  st.tabBtn,
-                  active && [st.tabBtnActive, { backgroundColor: tokens.accentPrimaryLight }],
-                  pressed && { opacity: 0.75 },
-                ]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={label}
-              >
-                <Icon
-                  size={13}
-                  color={active ? tokens.accentBlue : tokens.textMuted}
-                  strokeWidth={active ? 2.5 : 2}
-                />
-                <Text style={[st.tabLabel, { color: active ? tokens.accentBlue : tokens.textMuted }]}>
-                  {label}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
+        {/* Centered wrapper for web */}
+        <View style={!isMobile ? st.webContent : undefined}>
+          <View style={[st.tabBar, { backgroundColor: tokens.bgInput }]}>
+            {TABS.map(({ id, label, Icon }) => {
+              const active = activeTab === id
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => setActiveTab(id)}
+                  style={({ pressed }) => [
+                    st.tabBtn,
+                    active && [st.tabBtnActive, { backgroundColor: tokens.accentPrimaryLight }],
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={label}
+                >
+                  <Icon
+                    size={13}
+                    color={active ? tokens.accentBlue : tokens.textMuted}
+                    strokeWidth={active ? 2.5 : 2}
+                  />
+                  <Text style={[st.tabLabel, { color: active ? tokens.accentBlue : tokens.textMuted }]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
 
-        {activeTab === 'statistics' && (
-          <StatisticsTab
-            tokens={tokens}
-            thisWeekReport={thisWeekReport}
-            lastWeekReport={lastWeekReport}
-            getWeeklyReport={getWeeklyReport}
-            getTopicColor={getTopicColor}
-            timeTrackingStats={timeTrackingStats}
-            bestHoursData={bestHoursData}
-            topicBalanceData={topicBalanceData}
-            bestHoursAnalysis={bestHoursAnalysis}
-            topicBalanceAnalysis={topicBalanceAnalysis}
-            isWide={!isMobile}
-          />
-        )}
+          {activeTab === 'statistics' && (
+            <StatisticsTab
+              tokens={tokens}
+              thisWeekReport={thisWeekReport}
+              lastWeekReport={lastWeekReport}
+              getWeeklyReport={getWeeklyReport}
+              getTopicColor={getTopicColor}
+              timeTrackingStats={timeTrackingStats}
+              bestHoursData={bestHoursData}
+              topicBalanceData={topicBalanceData}
+              bestHoursAnalysis={bestHoursAnalysis}
+              topicBalanceAnalysis={topicBalanceAnalysis}
+              isWide={!isMobile}
+            />
+          )}
 
-        {activeTab === 'activity' && (
-          <ActivityTab
-            tokens={tokens}
-            heatmapRecord={heatmapRecord}
-            productivityScore={productivityScore}
-          />
-        )}
+          {activeTab === 'activity' && (
+            <ActivityTab
+              tokens={tokens}
+              heatmapRecord={heatmapRecord}
+              productivityScore={productivityScore}
+            />
+          )}
+        </View>{/* end webContent */}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -575,7 +619,6 @@ const s = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -666,7 +709,6 @@ const s = StyleSheet.create({
   bhPeriodCell: { flex: 1, minWidth: 60, borderRadius: 10, padding: 10, alignItems: 'center', gap: 2 },
   bhPeriodCount: { fontSize: 16, fontWeight: '700' },
   bhPeriodName: { fontSize: 9 },
-  tbCardTitle: { fontSize: 15, fontWeight: '600' },
   tbDonutCenter: { alignItems: 'center', marginBottom: 20 },
   tbLegendList: { gap: 14 },
   tbLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -682,6 +724,7 @@ const st = StyleSheet.create({
     padding: 16,
     paddingTop: Platform.OS === 'android' ? 16 : 8,
   },
+  webContent: { maxWidth: 1000, alignSelf: 'center', width: '100%' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

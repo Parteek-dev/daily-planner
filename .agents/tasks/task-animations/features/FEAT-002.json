@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add button press feedback using PressableScale, view toggle crossfade animations, and progress bar width animations. Leverages existing PressableScale component for buttons and creates CrossfadeView wrapper for view transitions.",
+  "status": "completed",
+  "steps": [
+    "1. Create src/components/motion/CrossfadeView.tsx: A wrapper that crossfades between children when a 'viewKey' prop changes. Use useSharedValue for opacity, useAnimatedStyle, FadeIn/FadeOut entering/exiting layout animations from Reanimated. Duration ~200ms. Respect useMotion().reducedMotion.",
+    "2. Export CrossfadeView from src/components/motion/index.ts barrel file.",
+    "3. In app/(tabs)/today.tsx: Import CrossfadeView. Wrap the conditional render of DayTimeline vs task list (viewMode === 'timeline' ? ... : ...) with CrossfadeView, passing viewKey={viewMode}.",
+    "4. In app/(tabs)/index.tsx: Import CrossfadeView. Wrap the conditional render of scheduleViewMode (timeline vs list in Today's Schedule card) with CrossfadeView, passing viewKey={scheduleViewMode}.",
+    "5. In app/(tabs)/calendar.tsx: The DayPanel component already has panelViewMode state. Wrap the task list / timeline conditional with CrossfadeView, passing viewKey={panelViewMode}.",
+    "6. In app/(tabs)/index.tsx: Find the focusProgressFill View inside the Today's Focus card. Add animated width using useSharedValue initialized to todayProgress.percent, useAnimatedStyle with width: `${progressWidth.value}%`. When todayProgress.percent changes, animate with withTiming(250ms).",
+    "7. Replace key Pressable buttons with PressableScale from src/components/motion/PressableScale.tsx: In src/components/DailyNotes.tsx replace the expand/collapse Pressable. In src/components/navigation/NavigationBar.tsx replace TabItem Pressable. Keep existing accessibilityRole and styles.",
+    "8. In app/(tabs)/_layout.tsx: Consider replacing view toggle button Pressables in both SidebarLayout and NativeTabLayoutInner with PressableScale for consistent feedback.",
+    "9. Ensure all CrossfadeView usage handles empty states gracefully (no animation if only one child ever renders)."
+  ],
+  "acceptance_criteria": [
+    "View toggle between list and timeline shows smooth crossfade (opacity transition)",
+    "Progress bar in Focus card animates width changes smoothly",
+    "DailyNotes expand button has subtle press scale feedback",
+    "NavigationBar tabs have subtle press scale feedback",
+    "Animations skip when reduced motion is enabled",
+    "No layout jumps or flicker during view transitions"
+  ],
+  "verification": [
+    "npx vitest --run",
+    "Manual test: Toggle list/timeline view on Today screen — verify crossfade animation",
+    "Manual test: Toggle list/timeline view on Home screen schedule card — verify crossfade",
+    "Manual test: Toggle list/timeline view on Calendar day panel — verify crossfade",
+    "Manual test: Complete tasks to change progress — verify Focus card progress bar animates",
+    "Manual test: Tap nav bar buttons — verify subtle scale down on press"
+  ],
+  "blocked_reason": null,
+  "findings": "Implemented all FEAT-002 animations: 1) Created CrossfadeView component that fades out to 0 opacity (half duration), updates children, then fades in (half duration). Uses useMotion().getDuration() for reduced motion support. 2) Added CrossfadeView to today.tsx, index.tsx (Home), and calendar.tsx (DayPanel) for list/timeline view toggles. 3) Added animated progress bar to Focus card in index.tsx using useSharedValue and useAnimatedStyle with withTiming(250ms). 4) Replaced Pressables with PressableScale in DailyNotes.tsx (expand/collapse button) and NavigationBar.tsx (all TabItems including Profile). Removed unused tabPressed style from NavigationBar. All animations respect reduced motion settings via useMotion hook."
+}

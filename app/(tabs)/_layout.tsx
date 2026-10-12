@@ -28,6 +28,10 @@ import { useAuth } from '@/src/hooks/useAuth';
 import { useProgress } from '@/src/hooks/useProgress';
 import { MobileHeaderProvider, useMobileHeader } from '@/src/context/MobileHeaderContext';
 import { AddTaskModalProvider, useAddTaskModal } from '@/src/context/AddTaskModalContext';
+import { SettingsModalProvider, useSettingsModal } from '@/src/context/SettingsModalContext';
+import SettingsModal from '@/src/components/SettingsModal';
+import { PomodoroModalProvider, usePomodoroModal } from '@/src/context/PomodoroModalContext';
+import PomodoroModal from '@/src/components/PomodoroModal';
 import { useWidget } from '@/src/context/WidgetContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -59,6 +63,20 @@ function AddTaskModalOverlay() {
   );
 }
 
+// ─── Settings Modal overlay component (web only) ──────────────────────────────
+
+function SettingsModalOverlay() {
+  const { isOpen, closeSettings } = useSettingsModal();
+  return <SettingsModal isOpen={isOpen} onClose={closeSettings} />;
+}
+
+// ─── Pomodoro Modal overlay component ──────────────────────────────────────────
+
+function PomodoroModalOverlay() {
+  const { isOpen, taskId, closePomodoro } = usePomodoroModal();
+  return <PomodoroModal isOpen={isOpen} onClose={closePomodoro} initialTaskId={taskId} />;
+}
+
 // ─── Sidebar layout wrapper (web ≥ 768 px) ────────────────────────────────────
 
 /**
@@ -71,14 +89,16 @@ function SidebarLayout({
   overdueCount,
   activeTab,
   onNavigate,
-}: {
+}: Readonly<{
   overdueCount: number;
   activeTab: string;
   onNavigate: (tab: string) => void;
-}) {
+}>) {
   const { tokens } = useTheme();
   const router = useRouter();
   const { user, signOut, exitGuestMode } = useAuth();
+  const { openSettings } = useSettingsModal();
+  const { openPomodoro } = usePomodoroModal();
   const isGuest = user?.isAnonymous ?? false;
 
   // Unified sign-out — AuthGate in _layout.tsx handles the redirect when
@@ -92,7 +112,7 @@ function SidebarLayout({
     // AuthGate detects user===null and calls router.replace('/') automatically.
     // Do NOT call router.replace here — it races with AuthGate and breaks nav.
   }, [isGuest, exitGuestMode, signOut]);
-  const { tasks, getTopicColor, topics, addTask, toggleTaskComplete, todayCompleted, todayTotal, streakData } = useProgress({ user });
+  const { tasks, getTopicColor, topics, toggleTaskComplete, todayCompleted, todayTotal, streakData } = useProgress({ user });
   const [showSearch, setShowSearch] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const { open: openWidget, setTaskData } = useWidget();
@@ -116,10 +136,10 @@ function SidebarLayout({
           today: overdueCount,
         }}
         overdueCount={overdueCount}
-        onOpenPomodoro={() => router.push('/(modals)/pomodoro')}
+        onOpenPomodoro={openPomodoro}
         onOpenVoiceInput={() => setShowVoiceInput(true)}
         onOpenCommandPalette={() => setShowSearch(true)}
-        onOpenSettings={() => router.push('/(modals)/settings')}
+        onOpenSettings={openSettings}
         onOpenWidget={openWidget}
         user={user}
         todayProgress={{ completed: todayCompleted, total: todayTotal }}
@@ -174,6 +194,12 @@ function SidebarLayout({
 
       {/* Add Task Modal overlay */}
       <AddTaskModalOverlay />
+
+      {/* Settings Modal overlay (web only) */}
+      <SettingsModalOverlay />
+
+      {/* Pomodoro Modal overlay */}
+      <PomodoroModalOverlay />
     </View>
   );
 }
@@ -184,7 +210,7 @@ function SidebarLayout({
  * Inner component — must be rendered inside MobileHeaderProvider so it can
  * subscribe to openSearch calls from the tab screens.
  */
-function NativeTabLayoutInner({ overdueCount }: { overdueCount: number }) {
+function NativeTabLayoutInner({ overdueCount }: Readonly<{ overdueCount: number }>) {
   const [showSearch, setShowSearch] = useState(false);
   const { _subscribe } = useMobileHeader();
   const { user } = useAuth();
@@ -219,6 +245,9 @@ function NativeTabLayoutInner({ overdueCount }: { overdueCount: number }) {
 
       {/* Add Task Modal overlay */}
       <AddTaskModalOverlay />
+
+      {/* Pomodoro Modal overlay */}
+      <PomodoroModalOverlay />
     </View>
   );
 }
@@ -256,17 +285,21 @@ export default function TabLayout() {
   const useWebSidebar = Platform.OS === 'web' && width > SIDEBAR_BREAKPOINT;
 
   return (
-    <AddTaskModalProvider>
-      {useWebSidebar ? (
-        <SidebarLayout
-          overdueCount={overdueCount}
-          activeTab={activeTab}
-          onNavigate={handleNavigate}
-        />
-      ) : (
-        <NativeTabLayout overdueCount={overdueCount} />
-      )}
-    </AddTaskModalProvider>
+    <PomodoroModalProvider>
+      <SettingsModalProvider>
+        <AddTaskModalProvider>
+          {useWebSidebar ? (
+            <SidebarLayout
+              overdueCount={overdueCount}
+              activeTab={activeTab}
+              onNavigate={handleNavigate}
+            />
+          ) : (
+            <NativeTabLayout overdueCount={overdueCount} />
+          )}
+        </AddTaskModalProvider>
+      </SettingsModalProvider>
+    </PomodoroModalProvider>
   );
 }
 

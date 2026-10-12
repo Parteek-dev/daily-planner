@@ -13,3 +13,6 @@ export type { PressableScaleProps } from './PressableScale'
 
 export { default as AnimatedGlow } from './AnimatedGlow'
 export type { AnimatedGlowProps } from './AnimatedGlow'
+
+export { default as CrossfadeView } from './CrossfadeView'
+export type { CrossfadeViewProps } from './CrossfadeView'

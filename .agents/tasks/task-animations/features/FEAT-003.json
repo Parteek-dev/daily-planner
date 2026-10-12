@@ -1,0 +1,38 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Add tab/screen fade transitions and enhance modal animations. Configure Expo Router tab transitions and verify/enhance modal slide-up + fade animations.",
+  "status": "pending",
+  "steps": [
+    "1. In app/(tabs)/_layout.tsx, update the Tabs component screenOptions to add animation: 'fade' for smooth transitions between tabs. For the SidebarLayout Tabs (web desktop), add screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' }, animation: 'fade' }}.",
+    "2. For the NativeTabLayout Tabs (mobile), add animation: 'fade' to screenOptions. Test if the built-in fade works on iOS, Android, and web. Note: React Navigation/Expo Router tab animation support varies by platform.",
+    "3. If built-in tab animation doesn't work consistently, implement a workaround: wrap each tab screen content in FadeInView with direction='none' (opacity only) that triggers on mount. This provides consistent entrance animation.",
+    "4. In app/(modals)/_layout.tsx, verify current modal animations. The add-task and settings screens already have animation: 'fade'. Check pomodoro, overdue-rollover, feedback, and profile screens.",
+    "5. Update pomodoro screen options to use presentation: 'transparentModal', animation: 'slide_from_bottom' for slide-up effect. Verify on iOS, Android, and web.",
+    "6. Update overdue-rollover screen options similarly: presentation: 'transparentModal', animation: 'slide_from_bottom'.",
+    "7. For feedback and profile (fullScreenModal), add animation: 'slide_from_right' or 'slide_from_bottom' depending on desired UX.",
+    "8. Test modal open/close animations on all three platforms. If native animations don't work on web, consider adding Reanimated-based modal animation wrapper for web platform only.",
+    "9. Verify that modal backdrop tap-to-close still works and doesn't interfere with animations."
+  ],
+  "acceptance_criteria": [
+    "Switching between tabs shows a subtle fade transition (200-250ms)",
+    "Add-task modal slides up from bottom with fade backdrop on all platforms",
+    "Pomodoro modal slides up from bottom",
+    "Settings modal has fade animation",
+    "Overdue rollover modal slides up from bottom",
+    "Feedback/Profile modals have appropriate entrance animation",
+    "Modal close animations work smoothly (reverse of entrance)",
+    "Animations work on iOS, Android, and web"
+  ],
+  "verification": [
+    "npx vitest --run",
+    "Manual test: Navigate between all four tabs — verify fade transition or at minimum no jarring instant switch",
+    "Manual test: Open Add Task modal — verify slide-up or fade animation",
+    "Manual test: Open Pomodoro modal — verify slide-up animation",
+    "Manual test: Open Settings — verify animation",
+    "Manual test: Close each modal — verify smooth close animation",
+    "Test on web browser, iOS simulator, Android emulator"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

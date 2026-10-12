@@ -7,7 +7,7 @@
  * Works on iOS, Android, and web (responsive at 768px breakpoint).
  */
 
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -19,27 +19,34 @@ import {
   Platform,
   Pressable,
 } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated'
 import {
   Flame,
   CheckCircle2,
   AlertCircle,
-  ListTodo,
-  PlayCircle,
   ChevronRight,
   ChevronDown,
-  Video,
-  FileText,
-  Presentation,
   Clock,
   Check,
-  Bell,
   Timer,
+  List,
+  CalendarDays,
 } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
 
 import { useAuth } from '@/src/hooks/useAuth'
 import { useProgress } from '@/src/hooks/useProgress'
 import { useTheme } from '@/src/hooks/useTheme'
+import { useMotion } from '@/src/hooks/useMotion'
+import { useAddTaskModal } from '@/src/context/AddTaskModalContext'
+import { UnifiedTaskItem } from '@/src/components/task/UnifiedTaskItem'
+import { DayTimeline } from '@/src/components/task/DayTimeline'
+import { CrossfadeView } from '@/src/components/motion'
 
 const SIDEBAR_BREAKPOINT = 768
 
@@ -59,15 +66,6 @@ function formatTime(time: string | undefined | null): string {
   const ampm = h >= 12 ? 'PM' : 'AM'
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
   return `${h12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`
-}
-
-// Get icon for task based on topic
-function getTaskIcon(topic: string | undefined) {
-  const t = (topic || '').toLowerCase()
-  if (t.includes('meet') || t.includes('call') || t.includes('video')) return Video
-  if (t.includes('design') || t.includes('review')) return FileText
-  if (t.includes('present') || t.includes('client')) return Presentation
-  return Clock
 }
 
 // Helper to get start of week (Monday)
@@ -120,8 +118,11 @@ export default function HomeScreen() {
   const { user } = useAuth()
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { openAddTask } = useAddTaskModal()
+  const motion = useMotion()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('week')
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
+  const [scheduleViewMode, setScheduleViewMode] = useState<'list' | 'timeline'>('list')
 
   const isMobile = !(Platform.OS === 'web' && width > SIDEBAR_BREAKPOINT)
 
@@ -154,6 +155,25 @@ export default function HomeScreen() {
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0
     return { total, completed, percent }
   }, [todayTasks])
+
+  // Animated progress bar
+  const progressWidth = useSharedValue(todayProgress.percent)
+
+  useEffect(() => {
+    const durationMs = motion.getDuration('normal')
+    if (durationMs === 0) {
+      progressWidth.value = todayProgress.percent
+    } else {
+      progressWidth.value = withTiming(todayProgress.percent, {
+        duration: 250,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      })
+    }
+  }, [todayProgress.percent, motion, progressWidth])
+
+  const animatedProgressStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%` as any,
+  }))
 
   // Calculate stats based on selected time period
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
@@ -201,26 +221,8 @@ export default function HomeScreen() {
       .slice(0, 5)
   }, [todayTasks])
 
-  // Card configuration for the overview stats
+  // Card configuration for the overview stats (4 key metrics)
   const statsCards = [
-    {
-      key: 'tasks',
-      label: 'Tasks',
-      value: filteredStats.totalTasks,
-      subLabel: 'Total Tasks',
-      icon: ListTodo,
-      iconColor: tokens.accentBlue,
-      bgTint: `${tokens.accentBlue}12`,
-    },
-    {
-      key: 'inProgress',
-      label: 'In Progress',
-      value: filteredStats.inProgress,
-      subLabel: 'Tasks',
-      icon: PlayCircle,
-      iconColor: tokens.accentOrange,
-      bgTint: `${tokens.accentOrange}12`,
-    },
     {
       key: 'completed',
       label: 'Completed',
@@ -260,7 +262,7 @@ export default function HomeScreen() {
   ]
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[s.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle={tokens.bgPrimary === '#0f172a' || tokens.bgPrimary === '#ffffff' ? 'dark-content' : 'light-content'} />
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -272,20 +274,6 @@ export default function HomeScreen() {
               <Text style={[s.greetingText, { color: tokens.textSecondary }]}>{greeting},</Text>
               <Text style={[s.userName, { color: tokens.textPrimary }]}>{displayName} 👋</Text>
             </View>
-            <Pressable
-              onPress={() => router.push('/(modals)/settings')}
-              style={({ pressed }) => [
-                s.notificationBtn,
-                { backgroundColor: tokens.bgSecondary },
-                pressed && { opacity: 0.7 },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-            >
-              <Bell size={20} color={tokens.textPrimary} />
-              {/* Notification dot */}
-              <View style={[s.notificationDot, { backgroundColor: tokens.accentRed }]} />
-            </Pressable>
           </View>
 
           {/* Today's Focus Card */}
@@ -299,7 +287,7 @@ export default function HomeScreen() {
                 <Text style={s.focusProgressLabel}>Progress</Text>
                 <View style={s.focusProgressRow}>
                   <View style={s.focusProgressTrack}>
-                    <View style={[s.focusProgressFill, { width: `${todayProgress.percent}%` as any }]} />
+                    <Animated.View style={[s.focusProgressFill, animatedProgressStyle]} />
                   </View>
                   <Text style={s.focusProgressText}>{todayProgress.percent}%</Text>
                 </View>
@@ -377,47 +365,84 @@ export default function HomeScreen() {
                     { backgroundColor: card.bgTint },
                   ]}
                 >
-                  <Text style={[s.overviewStatLabel, { color: tokens.textSecondary }]}>
-                    {card.label}
-                  </Text>
+                  {/* Header row with icon and label */}
+                  <View style={s.overviewStatHeader}>
+                    <IconComponent size={16} color={card.iconColor} strokeWidth={2} />
+                    <Text style={[s.overviewStatLabel, { color: card.iconColor }]}>
+                      {card.label}
+                    </Text>
+                  </View>
                   <Text style={[s.overviewStatValue, { color: tokens.textPrimary }]}>
                     {card.value}
                   </Text>
                   <Text style={[s.overviewStatSub, { color: tokens.textMuted }]}>
                     {card.subLabel}
                   </Text>
-                  {/* Icon in bottom-right corner */}
-                  <View style={s.overviewStatIcon}>
-                    <IconComponent size={25} color={card.iconColor} strokeWidth={1.5} />
-                  </View>
                 </View>
               )
             })}
           </View>
 
           {/* Today's Schedule */}
-          <View style={[s.card, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+          <View style={[s.card, {
+            backgroundColor: tokens.bgPrimary,
+            borderWidth: 1,
+            borderColor: tokens.borderPrimary,
+            ...(Platform.OS === 'ios'
+              ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }
+              : Platform.OS === 'android'
+                ? { elevation: 2 }
+                : { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+            ),
+          } as any]}>
             <View style={s.cardHeader}>
               <Text style={[s.cardTitle, { color: tokens.textPrimary }]}>Today's Schedule</Text>
-              <Pressable
-                onPress={() => router.push('/(tabs)/today')}
-                style={({ pressed }) => [s.seeAllBtn, pressed && { opacity: 0.7 }]}
-                accessibilityRole="button"
-                accessibilityLabel="See all tasks"
-              >
-                <Text style={[s.seeAllText, { color: tokens.textMuted }]}>See all</Text>
-                <ChevronRight size={14} color={tokens.textMuted} />
-              </Pressable>
+              <View style={s.cardActions}>
+                {/* View toggle */}
+                <View style={[s.viewToggle, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+                  <Pressable
+                    onPress={() => setScheduleViewMode('list')}
+                    style={[
+                      s.viewToggleBtn,
+                      scheduleViewMode === 'list' && { backgroundColor: tokens.bgPrimary },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="List view"
+                  >
+                    <List size={12} color={scheduleViewMode === 'list' ? tokens.accentPrimary : tokens.textMuted} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setScheduleViewMode('timeline')}
+                    style={[
+                      s.viewToggleBtn,
+                      scheduleViewMode === 'timeline' && { backgroundColor: tokens.bgPrimary },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Timeline view"
+                  >
+                    <CalendarDays size={12} color={scheduleViewMode === 'timeline' ? tokens.accentPrimary : tokens.textMuted} />
+                  </Pressable>
+                </View>
+                <Pressable
+                  onPress={() => router.push('/(tabs)/today')}
+                  style={({ pressed }) => [s.seeAllBtn, pressed && { opacity: 0.7 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="See all tasks"
+                >
+                  <Text style={[s.seeAllText, { color: tokens.textMuted }]}>See all</Text>
+                  <ChevronRight size={14} color={tokens.textMuted} />
+                </Pressable>
+              </View>
             </View>
 
-            {todaySchedule.length === 0 ? (
+            {todayTasks.length === 0 ? (
               <View style={[s.emptySchedule, { backgroundColor: tokens.bgInput }]}>
                 <Clock size={24} color={tokens.textMuted} />
                 <Text style={[s.emptyScheduleText, { color: tokens.textMuted }]}>
                   No tasks scheduled for today
                 </Text>
                 <Pressable
-                  onPress={() => router.push('/(modals)/add-task')}
+                  onPress={() => openAddTask()}
                   style={({ pressed }) => [
                     s.addTaskBtn,
                     { backgroundColor: tokens.accentPrimary, opacity: pressed ? 0.8 : 1 },
@@ -429,57 +454,36 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             ) : (
-              <View style={s.scheduleList}>
-                {todaySchedule.map((task, idx) => {
-                  const TaskIcon = getTaskIcon(task.topic)
-                  const topicColor = task.topic ? getTopicColor(task.topic) : tokens.accentBlue
-                  const isLast = idx === todaySchedule.length - 1
-
-                  return (
-                    <Pressable
-                      key={task.id}
-                      onPress={() => router.push({ pathname: '/(modals)/add-task', params: { taskId: task.id } })}
-                      style={({ pressed }) => [
-                        s.scheduleItem,
-                        !isLast && { borderBottomWidth: 1, borderBottomColor: tokens.borderPrimary },
-                        pressed && { opacity: 0.7, backgroundColor: `${tokens.bgInput}50` },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit task: ${task.title}`}
-                    >
-                      {/* Left accent bar */}
-                      <View style={[s.scheduleAccent, { backgroundColor: topicColor }]} />
-
-                      {/* Time */}
-                      <View style={s.scheduleTime}>
-                        <Text style={[s.scheduleTimeText, { color: tokens.textSecondary }]}>
-                          {task.dueTime ? formatTime(task.dueTime) : '—'}
-                        </Text>
-                      </View>
-
-                      {/* Icon */}
-                      <View style={[s.scheduleIconWrap, { backgroundColor: `${topicColor}15` }]}>
-                        <TaskIcon size={16} color={topicColor} />
-                      </View>
-
-                      {/* Content */}
-                      <View style={s.scheduleContent}>
-                        <Text style={[s.scheduleTitle, { color: tokens.textPrimary }]} numberOfLines={1}>
-                          {task.title}
-                        </Text>
-                        {task.topic && (
-                          <Text style={[s.scheduleTopic, { color: tokens.textMuted }]} numberOfLines={1}>
-                            {task.topic}
-                          </Text>
-                        )}
-                      </View>
-
-                      {/* Chevron */}
-                      <ChevronRight size={16} color={tokens.textMuted} />
-                    </Pressable>
-                  )
-                })}
-              </View>
+              <CrossfadeView viewKey={scheduleViewMode} duration="fast">
+                {scheduleViewMode === 'timeline' ? (
+                  <View style={s.timelineContainer}>
+                    <DayTimeline
+                      tasks={todayTasks}
+                      onToggle={() => { }}
+                      onPress={(id) => openAddTask({ editTaskId: id })}
+                      getTopicColor={getTopicColor}
+                      hourHeight={72}
+                      compact
+                      hideUnscheduled
+                    />
+                  </View>
+                ) : (
+                  <View style={s.scheduleList}>
+                    {todaySchedule.map((task, idx) => (
+                      <UnifiedTaskItem
+                        key={task.id}
+                        task={task}
+                        onToggle={() => {/* toggle handled in today screen */ }}
+                        onPress={() => openAddTask({ editTaskId: task.id })}
+                        getTopicColor={getTopicColor}
+                        showActions={false}
+                        compact
+                        showSeparator={idx < todaySchedule.length - 1}
+                      />
+                    ))}
+                  </View>
+                )}
+              </CrossfadeView>
             )}
           </View>
 
@@ -523,22 +527,6 @@ const s = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-  },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
 
   // Today's Focus card
@@ -644,14 +632,17 @@ const s = StyleSheet.create({
     maxWidth: '50%' as any,
     borderRadius: 16,
     padding: 16,
-    position: 'relative',
-    overflow: 'hidden',
     minHeight: 100,
   },
-  overviewStatLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+  overviewStatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 8,
+  },
+  overviewStatLabel: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   overviewStatValue: {
     fontSize: 32,
@@ -662,18 +653,11 @@ const s = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  overviewStatIcon: {
-    position: 'absolute',
-    right: 12,
-    bottom: 12,
-    opacity: 0.8,
-  },
 
   // Card styles
   card: {
     borderRadius: 16,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 16,
   },
   cardHeader: {
@@ -681,6 +665,21 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 2,
+  },
+  viewToggleBtn: {
+    padding: 5,
+    borderRadius: 6,
   },
   cardTitleRow: {
     flexDirection: 'row',
@@ -726,6 +725,10 @@ const s = StyleSheet.create({
   // Schedule list
   scheduleList: {
     gap: 0,
+  },
+  timelineContainer: {
+    height: 400,
+    marginHorizontal: -8,
   },
   scheduleItem: {
     flexDirection: 'row',

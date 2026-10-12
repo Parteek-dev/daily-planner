@@ -1,0 +1,29 @@
+{
+  "project_type": "React Native / Expo cross-platform app (iOS, Android, Web)",
+  "language": "TypeScript",
+  "build_system": "Expo SDK 52 with expo-router, Metro bundler",
+  "test_framework": "Vitest for unit tests",
+  "build_command": "npx expo start (dev) — no dedicated build-check command",
+  "test_command": "npx vitest --run",
+  "verification_instructions": "1. Run `npx vitest --run` for unit tests. 2. Manual verification: start app with `npx expo start`, test on iOS simulator, Android emulator, and web browser. 3. Verify animations are smooth (60fps), respect reduced motion settings, and work on all platforms.",
+  "snapshot_or_generated_files": null,
+  "environment_constraints": "No native code ejection — all native code via Expo managed workflow. react-native-reanimated requires babel plugin (already configured via babel-preset-expo). Web uses CSS transitions as fallback for some Reanimated features.",
+  "contribution_requirements": "Follow makeStyles(tokens) pattern for all styling. Never hardcode colors — use useTheme().tokens. Animations must respect useMotion() reduced motion settings. Components must work on iOS, Android, and web.",
+  "key_patterns": "Existing motion components in src/components/motion/ (FadeInView, PressableScale, AnimatedGlow). useMotion() hook provides spring/timing configs and reduced motion detection. Use Reanimated useSharedValue, useAnimatedStyle, withSpring, withTiming. Import Animated from react-native-reanimated (not react-native).",
+  "relevant_files": [
+    "src/hooks/useMotion.ts",
+    "src/components/motion/index.ts",
+    "src/components/motion/PressableScale.tsx",
+    "src/components/motion/FadeInView.tsx",
+    "src/components/task/UnifiedTaskItem.tsx",
+    "src/components/DailyNotes.tsx",
+    "src/components/navigation/NavigationBar.tsx",
+    "app/(tabs)/_layout.tsx",
+    "app/(tabs)/today.tsx",
+    "app/(tabs)/index.tsx",
+    "app/(tabs)/calendar.tsx",
+    "app/(modals)/_layout.tsx",
+    "src/theme/tokens.ts"
+  ],
+  "directory_structure": "app/ contains Expo Router screens and layouts. src/components/ contains reusable components organized by domain (task/, navigation/, planner/, motion/). src/hooks/ contains custom hooks including useTheme, useMotion, useProgress. src/theme/tokens.ts defines design system tokens."
+}

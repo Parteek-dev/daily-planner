@@ -329,7 +329,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
             {/* Footer */}
             <View style={[styles.footer, { borderTopColor: tokens.borderPrimary }]}>
               <Text style={{ fontSize: 12, color: tokens.textMuted, textAlign: 'center' }}>
-                Daily Planner v1.0 • Built with Expo + React Native
+                Daily Planner v1.0
               </Text>
             </View>
           </ScrollView>

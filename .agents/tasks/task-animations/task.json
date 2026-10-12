@@ -1,0 +1,7 @@
+{
+  "task_id": "task-animations",
+  "task_description": "Implement comprehensive animations throughout the Daily Planner app: tab transitions, task completion/delete animations, button press feedback, view toggle crossfades, progress bar animations, and enhanced modal animations.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

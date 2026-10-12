@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
 import {
   ChevronLeft,
   ChevronRight,
@@ -105,14 +105,6 @@ export default function WeeklyReport({
   const periodLabel =
     weeksAgo === 0 ? 'This Week' : weeksAgo === 1 ? 'Last Week' : `${weeksAgo} weeks ago`
 
-  // Format trend percentage
-  const tasksTrendPct = prevWeek.completedTasks > 0
-    ? Math.round((tasksTrend / prevWeek.completedTasks) * 100)
-    : tasksTrend > 0 ? 100 : 0
-  const minutesTrendPct = prevWeek.totalMinutes > 0
-    ? Math.round((minutesTrend / prevWeek.totalMinutes) * 100)
-    : minutesTrend > 0 ? 100 : 0
-
   return (
     <View style={styles.container}>
       {/* Header with week navigation */}
@@ -152,7 +144,7 @@ export default function WeeklyReport({
           </Text>
           {minutesTrend !== 0 && (
             <Text style={[styles.statTrend, { color: minutesTrend > 0 ? tokens.accentGreen : tokens.accentRed }]}>
-              {minutesTrend > 0 ? '+' : ''}{minutesTrendPct}%
+              {fmtDelta(minutesTrend)}
             </Text>
           )}
         </View>
@@ -168,7 +160,7 @@ export default function WeeklyReport({
           </Text>
           {tasksTrend !== 0 && (
             <Text style={[styles.statTrend, { color: tasksTrend > 0 ? tokens.accentGreen : tokens.accentRed }]}>
-              {tasksTrend > 0 ? '+' : ''}{tasksTrendPct}%
+              {tasksTrend > 0 ? '+' : ''}{tasksTrend}
             </Text>
           )}
         </View>
@@ -191,7 +183,7 @@ export default function WeeklyReport({
       </View>
 
       {/* Productivity Overview chart */}
-      <View style={[styles.chartCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+      <View style={[styles.chartCard]}>
         <Text style={[styles.chartTitle, { color: tokens.textPrimary }]}>Productivity Overview</Text>
 
         {/* Y-axis labels + bars */}
@@ -216,7 +208,9 @@ export default function WeeklyReport({
             <View style={styles.barsContainer}>
               {days.map((day, i) => {
                 const pct = dailyProductivity[i]
-                const barH = pct > 0 ? Math.max(8, (pct / 100) * 120) : 4
+                // Bar height: 100% should touch the 100% grid line (130px available = 150px - 20px padding)
+                const maxBarHeight = 107
+                const barH = pct > 0 ? Math.max(8, (pct / 100) * maxBarHeight) : 4
                 const isSelected = selectedDay === i
                 const isActive = pct > 0
 
@@ -353,7 +347,19 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     chartCard: {
       borderRadius: 16,
       padding: 16,
-      borderWidth: StyleSheet.hairlineWidth,
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+        },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as object,
+      }),
     },
     chartTitle: {
       fontSize: 15,

@@ -47,17 +47,14 @@ import {
   ClipboardList,
   Repeat,
   Link,
-  Trash2,
   Focus,
   CheckCheck,
   Sparkles,
   X,
   Filter,
-  StickyNote,
-  CalendarClock,
-  ChevronDown,
-  ChevronRight,
   ListTodo,
+  List,
+  CalendarDays,
 } from 'lucide-react-native'
 
 import { useAuth } from '@/src/hooks/useAuth'
@@ -65,6 +62,7 @@ import { useProgress } from '@/src/hooks/useProgress'
 import { useTheme } from '@/src/hooks/useTheme'
 import { useMobileHeader } from '@/src/context/MobileHeaderContext'
 import { useAddTaskModal } from '@/src/context/AddTaskModalContext'
+import { usePomodoroModal } from '@/src/context/PomodoroModalContext'
 import QuickAdd from '@/src/components/task/QuickAdd'
 import DailyNotes from '@/src/components/DailyNotes'
 import OverdueRolloverModal from '@/src/components/task/OverdueRolloverModal'
@@ -72,6 +70,9 @@ import { Confetti } from '@/src/components/Confetti'
 import VoiceInput from '@/src/components/VoiceInput'
 import { fmtDuration } from '@/src/lib/utils'
 import type { Task } from '@/src/lib/firestoreMappers'
+import { UnifiedTaskItem } from '@/src/components/task/UnifiedTaskItem'
+import { DayTimeline } from '@/src/components/task/DayTimeline'
+import { CrossfadeView } from '@/src/components/motion'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -89,279 +90,6 @@ function formatTime(timeStr: string | null | undefined): string | null {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-// ── Flat TaskItem ──────────────────────────────────────────────────────────────
-
-interface FlatTaskItemProps {
-  task: Task
-  onToggle: () => void
-  onEdit: () => void
-  onDelete: () => void
-  onFocus: () => void
-  onReschedule: () => void
-  onToggleSubtask: (subtaskId: string) => void
-  getTopicColor: (t: string) => string
-  tokens: ReturnType<typeof useTheme>['tokens']
-}
-
-function FlatTaskItem({
-  task, onToggle, onEdit, onDelete, onFocus, onReschedule,
-  onToggleSubtask, getTopicColor, tokens,
-}: FlatTaskItemProps) {
-  const [subtasksExpanded, setSubtasksExpanded] = useState(false)
-  const [noteExpanded, setNoteExpanded] = useState(false)
-
-  const topicColor = getTopicColor(task.topic)
-  const completedSubs = task.subtasks?.filter((s: any) => s.completed).length ?? 0
-  const totalSubs = task.subtasks?.length ?? 0
-  const timeLabel = formatTime(task.dueTime)
-  const hasSubtasks = totalSubs > 0
-  const hasNote = !!(task as any).note?.trim()
-
-  return (
-    <View>
-      <Pressable
-        onPress={onEdit}
-        accessibilityRole="button"
-        accessibilityLabel={`Edit task: ${task.title}`}
-        style={({ pressed }) => [
-          fi.row,
-          { opacity: task.completed ? 0.6 : 1 },
-          pressed && { opacity: 0.7 },
-        ]}
-      >
-        {/* Time column (left side) */}
-        <View style={fi.timeColumn}>
-          <Text style={[fi.timeText, { color: tokens.textSecondary }]}>
-            {timeLabel || '—'}
-          </Text>
-        </View>
-
-        {/* Accent bar */}
-        <View style={[fi.accentBar, { backgroundColor: topicColor }]} />
-
-        {/* Checkbox */}
-        <Pressable onPress={(e) => { e.stopPropagation(); onToggle(); }} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: task.completed }}>
-          {task.completed
-            ? <CheckCircle2 size={20} color={tokens.accentGreen} />
-            : <Circle size={20} color={tokens.textMuted} />}
-        </Pressable>
-
-        {/* Content */}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {/* Meta badges + action icons row */}
-          <View style={fi.meta}>
-            {/* Topic pill */}
-            <View style={[fi.topicPill, { backgroundColor: `${topicColor}20`, borderColor: `${topicColor}40` }]}>
-              <Text style={[fi.topicPillText, { color: topicColor }]}>{task.topic}</Text>
-            </View>
-            {/* Duration */}
-            {task.duration > 0 && (
-              <View style={fi.metaItem}>
-                <Clock size={10} color={tokens.textMuted} />
-                <Text style={[fi.metaText, { color: tokens.textMuted }]}>{fmtDuration(task.duration)}</Text>
-              </View>
-            )}
-            {/* Recurrence */}
-            {task.recurrence && task.recurrence !== 'none' && (
-              <View style={fi.metaItem}>
-                <Repeat size={10} color={tokens.accentPurple ?? '#8b5cf6'} />
-                <Text style={[fi.metaText, { color: tokens.accentPurple ?? '#8b5cf6' }]}>{task.recurrence}</Text>
-              </View>
-            )}
-            {/* Dependency blocked */}
-            {(task as any).dependsOn?.length > 0 && (
-              <View style={fi.metaItem}>
-                <Link size={10} color={tokens.accentOrange} />
-                <Text style={[fi.metaText, { color: tokens.accentOrange, fontWeight: '600' }]}>Blocked</Text>
-              </View>
-            )}
-            {/* Subtask count */}
-            {hasSubtasks && (
-              <Text style={[fi.metaText, { color: tokens.textMuted }]}>{completedSubs}/{totalSubs} subtasks</Text>
-            )}
-
-            {/* ── 5 action icons (always visible, right-aligned) ── */}
-            <View style={fi.actions}>
-              {/* Expand/collapse subtasks */}
-              {hasSubtasks && (
-                <Pressable
-                  onPress={() => setSubtasksExpanded(p => !p)}
-                  hitSlop={6} style={fi.actionBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={subtasksExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
-                >
-                  {subtasksExpanded
-                    ? <ChevronDown size={14} color={tokens.textMuted} />
-                    : <ChevronRight size={14} color={tokens.textMuted} />}
-                </Pressable>
-              )}
-              {/* Focus */}
-              {!task.completed && (
-                <Pressable onPress={onFocus} hitSlop={6} style={fi.actionBtn} accessibilityRole="button" accessibilityLabel="Focus on this task">
-                  <Focus size={14} color={tokens.accentBlue} />
-                </Pressable>
-              )}
-              {/* Add/view note */}
-              <Pressable
-                onPress={() => setNoteExpanded(p => !p)}
-                hitSlop={6} style={fi.actionBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Add/view note"
-              >
-                <StickyNote size={14} color={hasNote ? tokens.accentBlue : tokens.textMuted} />
-              </Pressable>
-              {/* Reschedule to tomorrow */}
-              {!task.completed && (
-                <Pressable onPress={onReschedule} hitSlop={6} style={fi.actionBtn} accessibilityRole="button" accessibilityLabel="Reschedule to tomorrow">
-                  <CalendarClock size={14} color={tokens.textMuted} />
-                </Pressable>
-              )}
-              {/* Delete */}
-              <Pressable onPress={onDelete} hitSlop={6} style={fi.actionBtn} accessibilityRole="button" accessibilityLabel="Delete task">
-                <Trash2 size={14} color={tokens.textMuted} />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Title */}
-          <Text style={[fi.title, {
-            color: task.completed ? tokens.textMuted : tokens.textPrimary,
-            textDecorationLine: task.completed ? 'line-through' : 'none',
-          }]} numberOfLines={2}>
-            {task.title}
-          </Text>
-
-          {/* Description */}
-          {(task as any).description?.trim() && (
-            <Text style={[fi.desc, { color: tokens.textMuted }]} numberOfLines={2}>
-              {(task as any).description.trim()}
-            </Text>
-          )}
-        </View>
-      </Pressable>
-
-      {/* Inline note panel */}
-      {
-        noteExpanded && (
-          <View style={[fi.notePanel, { backgroundColor: tokens.bgInput, borderColor: tokens.borderPrimary }]}>
-            <StickyNote size={12} color={tokens.accentBlue} style={{ flexShrink: 0, marginTop: 2 } as any} />
-            <Text style={[fi.noteText, { color: tokens.textSecondary }]}>
-              {hasNote ? (task as any).note : 'No note yet — edit the task to add one.'}
-            </Text>
-          </View>
-        )
-      }
-
-      {/* Subtasks panel */}
-      {
-        hasSubtasks && subtasksExpanded && (
-          <View style={[fi.subtaskPanel, { backgroundColor: tokens.bgInput, borderColor: tokens.borderPrimary }]}>
-            {(task.subtasks as any[]).map((sub: any) => (
-              <Pressable
-                key={sub.id}
-                onPress={() => onToggleSubtask(sub.id)}
-                style={fi.subtaskRow}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: sub.completed }}
-              >
-                {sub.completed
-                  ? <CheckCircle2 size={16} color={tokens.accentGreen} />
-                  : <Circle size={16} color={tokens.textMuted} />}
-                <Text style={[fi.subtaskText, {
-                  color: sub.completed ? tokens.textMuted : tokens.textSecondary,
-                  textDecorationLine: sub.completed ? 'line-through' : 'none',
-                }]}>
-                  {sub.title}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )
-      }
-    </View >
-  )
-}
-
-const fi = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  timeColumn: {
-    width: 65,
-    flexShrink: 0,
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  accentBar: {
-    width: 3,
-    height: 40,
-    borderRadius: 2,
-  },
-  meta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 5,
-  },
-  topicPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  topicPillText: { fontSize: 10, fontWeight: '600' },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 11 },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginLeft: 'auto' as any,
-    flexShrink: 0,
-  },
-  actionBtn: {
-    padding: 4,
-    borderRadius: 5,
-  },
-  title: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
-  desc: { fontSize: 12, marginTop: 3, lineHeight: 17 },
-  notePanel: {
-    flexDirection: 'row',
-    gap: 8,
-    padding: 10,
-    paddingLeft: 14,
-    marginTop: 4,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  noteText: { flex: 1, fontSize: 13, lineHeight: 18, fontStyle: 'italic' },
-  subtaskPanel: {
-    marginTop: 4,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  subtaskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-  },
-  subtaskText: { fontSize: 13, flex: 1 },
-})
-
 // ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function TodayScreen() {
@@ -369,6 +97,7 @@ export default function TodayScreen() {
   const styles = makeStyles(tokens)
   const router = useRouter()
   const { openAddTask } = useAddTaskModal()
+  const { openPomodoro } = usePomodoroModal()
   const { openSearch } = useMobileHeader()
   const { width } = useWindowDimensions()
   const isMobile = !(Platform.OS === 'web' && width > 768)
@@ -407,6 +136,7 @@ export default function TodayScreen() {
   const [topicFilter, setTopicFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [showFilter, setShowFilter] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list')
 
   const filteredTasks = useMemo(() => {
     return todayTasks.filter(t => {
@@ -535,7 +265,7 @@ export default function TodayScreen() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgPrimary }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bgTertiary }]}>
       <StatusBar barStyle={tokens.bgPrimary === '#0f172a' || tokens.bgPrimary === '#1e293b' ? 'light-content' : 'dark-content'} />
 
       <ScrollView
@@ -582,28 +312,28 @@ export default function TodayScreen() {
           <View style={styles.statCardsRow}>
             {/* Today Tasks Card */}
             <View style={[styles.statCard, { backgroundColor: `${tokens.accentPurple}10` }]}>
-              <Text style={[styles.statCardLabel, { color: tokens.textSecondary }]}>Today</Text>
+              <View style={styles.statCardHeader}>
+                <ListTodo size={16} color={tokens.accentPurple} strokeWidth={2} />
+                <Text style={[styles.statCardLabel, { color: tokens.accentPurple }]}>Today</Text>
+              </View>
               <Text style={[styles.statCardValue, { color: tokens.textPrimary }]}>{todayTotal}</Text>
               <Text style={[styles.statCardSub, { color: tokens.textMuted }]}>Tasks</Text>
-              <View style={[styles.statCardIcon, { right: 12, bottom: 12 }]}>
-                <ListTodo size={40} color={tokens.accentPurple} strokeWidth={1.5} />
-              </View>
             </View>
 
             {/* High Priority Card */}
             <View style={[styles.statCard, { backgroundColor: `${tokens.accentRed}10` }]}>
-              <Text style={[styles.statCardLabel, { color: tokens.textSecondary }]}>High Priority</Text>
+              <View style={styles.statCardHeader}>
+                <Flag size={16} color={tokens.accentRed} strokeWidth={2} />
+                <Text style={[styles.statCardLabel, { color: tokens.accentRed }]}>High Priority</Text>
+              </View>
               <Text style={[styles.statCardValue, { color: tokens.textPrimary }]}>{highPriorityCount}</Text>
               <Text style={[styles.statCardSub, { color: tokens.textMuted }]}>Tasks</Text>
-              <View style={[styles.statCardIcon, { right: 12, bottom: 12 }]}>
-                <Flag size={36} color={tokens.accentRed} strokeWidth={1.5} />
-              </View>
             </View>
           </View>
 
           {/* TIME PLAN — stacked bar (only when tasks exist with durations) */}
           {Object.keys(tasksByTopic).length > 0 && totalMinutes > 0 && (
-            <View style={[styles.timePlanCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+            <View style={[styles.timePlanCard, styles.cardElevated]}>
               <Text style={[styles.timePlanTitle, { color: tokens.textSecondary }]}>TIME PLAN</Text>
               {/* Stacked bar */}
               <View style={styles.timePlanBar}>
@@ -658,12 +388,41 @@ export default function TodayScreen() {
               )}
             </View>
             <View style={styles.tasksActions}>
+              {/* View toggle */}
+              <View style={[styles.viewToggle, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+                <Pressable
+                  onPress={() => setViewMode('list')}
+                  style={[
+                    styles.viewToggleBtn,
+                    viewMode === 'list' && { backgroundColor: tokens.bgPrimary },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="List view"
+                  accessibilityState={{ selected: viewMode === 'list' }}
+                >
+                  <List size={14} color={viewMode === 'list' ? tokens.accentPrimary : tokens.textMuted} />
+                </Pressable>
+                <Pressable
+                  onPress={() => setViewMode('timeline')}
+                  style={[
+                    styles.viewToggleBtn,
+                    viewMode === 'timeline' && { backgroundColor: tokens.bgPrimary },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Timeline view"
+                  accessibilityState={{ selected: viewMode === 'timeline' }}
+                >
+                  <CalendarDays size={14} color={viewMode === 'timeline' ? tokens.accentPrimary : tokens.textMuted} />
+                </Pressable>
+              </View>
               {/* Focus button — when incomplete tasks exist */}
               {todayTasks.some(t => !t.completed) && (
                 <Pressable
                   onPress={() => {
                     const first = todayTasks.find(t => !t.completed)
-                    if (first) router.push({ pathname: '/(modals)/pomodoro', params: { taskId: first.id } })
+                    if (first) {
+                      openPomodoro({ taskId: first.id })
+                    }
                   }}
                   style={[styles.ghostBtn, { borderColor: tokens.borderPrimary }]}
                   accessibilityRole="button"
@@ -682,6 +441,17 @@ export default function TodayScreen() {
                   accessibilityLabel="Mark all done"
                 >
                   <CheckCheck size={16} color={tokens.textSecondary} />
+                </Pressable>
+              )}
+              {/* Add task button — web only */}
+              {!isMobile && (
+                <Pressable
+                  onPress={handleAddTaskForDate}
+                  style={[styles.iconBtn, { backgroundColor: tokens.accentPrimaryMuted }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add task"
+                >
+                  <Plus size={16} color={tokens.accentPrimary} />
                 </Pressable>
               )}
             </View>
@@ -779,7 +549,7 @@ export default function TodayScreen() {
             </View>
           )}
 
-          {/* Task list — flat */}
+          {/* Task list — flat or timeline */}
           {dataLoading ? (
             <View style={styles.loadingRow}>
               <Text style={[styles.loadingText, { color: tokens.textMuted }]}>Loading tasks…</Text>
@@ -805,44 +575,48 @@ export default function TodayScreen() {
               <Text style={[styles.emptySubtitle, { color: tokens.textMuted }]}>No tasks match your filters</Text>
             </View>
           ) : (
-            <View style={[styles.taskListCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
-              {filteredTasks.map((task, idx) => {
-                const isLast = idx === filteredTasks.length - 1
-                return (
-                  <View
-                    key={task.id}
-                    style={[
-                      styles.taskItemWrapper,
-                      !isLast && { borderBottomWidth: 1, borderBottomColor: tokens.borderPrimary },
-                    ]}
-                  >
-                    <FlatTaskItem
-                      task={task}
-                      onToggle={() => handleToggle(task.id)}
-                      onEdit={() => handleEdit(task.id)}
-                      onDelete={() => handleDelete(task.id)}
-                      onFocus={() => router.push({ pathname: '/(modals)/pomodoro', params: { taskId: task.id } })}
-                      onReschedule={() => {
-                        const tomorrow = new Date()
-                        tomorrow.setDate(tomorrow.getDate() + 1)
-                        const tomorrowStr = tomorrow.toISOString().split('T')[0]
-                        updateTask(task.id, { date: tomorrowStr } as any)
-                      }}
-                      onToggleSubtask={(subId: string) => {
-                        const sub = task.subtasks?.find((s: any) => s.id === subId) as any
-                        if (sub) updateTask(task.id, {
-                          subtasks: task.subtasks?.map((s: any) =>
-                            s.id === subId ? { ...s, completed: !s.completed } : s
-                          ),
-                        } as any)
-                      }}
-                      getTopicColor={getTopicColor}
-                      tokens={tokens}
-                    />
-                  </View>
-                )
-              })}
-            </View>
+            /* Task list — crossfade between list and timeline */
+            <CrossfadeView viewKey={viewMode} duration="fast">
+              {viewMode === 'timeline' ? (
+                <View style={[styles.timelineCard, styles.cardElevated]}>
+                  <DayTimeline
+                    tasks={filteredTasks}
+                    onToggle={handleToggle}
+                    onPress={handleEdit}
+                    onReschedule={(id, newTime) => {
+                      updateTask(id, { dueTime: newTime } as any)
+                    }}
+                    getTopicColor={getTopicColor}
+                    hourHeight={72}
+                  />
+                </View>
+              ) : (
+                <View style={[styles.taskListCard, styles.cardElevated]}>
+                  {filteredTasks.map((task, idx) => {
+                    const isLast = idx === filteredTasks.length - 1
+                    return (
+                      <UnifiedTaskItem
+                        key={task.id}
+                        task={task}
+                        onToggle={() => handleToggle(task.id)}
+                        onPress={() => handleEdit(task.id)}
+                        onDelete={() => handleDelete(task.id)}
+                        onFocus={() => openPomodoro({ taskId: task.id })}
+                        onReschedule={() => {
+                          const tomorrow = new Date()
+                          tomorrow.setDate(tomorrow.getDate() + 1)
+                          const tomorrowStr = tomorrow.toISOString().split('T')[0]
+                          updateTask(task.id, { date: tomorrowStr } as any)
+                        }}
+                        getTopicColor={getTopicColor}
+                        showActions
+                        showSeparator={!isLast}
+                      />
+                    )
+                  })}
+                </View>
+              )}
+            </CrossfadeView>
           )}
 
           {/* Daily Notes */}
@@ -885,19 +659,21 @@ export default function TodayScreen() {
         </View>
       )}
 
-      {/* Floating Action Button */}
-      <Pressable
-        onPress={handleAddTaskForDate}
-        style={({ pressed }) => [
-          styles.fab,
-          { backgroundColor: tokens.accentPrimary },
-          pressed && styles.fabPressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Add new task"
-      >
-        <Plus size={28} color="#fff" strokeWidth={2.5} />
-      </Pressable>
+      {/* Floating Action Button — mobile only (web has QuickAdd bar) */}
+      {isMobile && (
+        <Pressable
+          onPress={handleAddTaskForDate}
+          style={({ pressed }) => [
+            styles.fab,
+            { backgroundColor: tokens.accentPrimary },
+            pressed && styles.fabPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Add new task"
+        >
+          <Plus size={28} color="#fff" strokeWidth={2.5} />
+        </Pressable>
+      )}
     </SafeAreaView>
   )
 }
@@ -931,14 +707,17 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       flex: 1,
       borderRadius: 16,
       padding: 16,
-      position: 'relative',
-      overflow: 'hidden',
       minHeight: 100,
     },
-    statCardLabel: {
-      fontSize: 14,
-      fontWeight: '500',
+    statCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
       marginBottom: 8,
+    },
+    statCardLabel: {
+      fontSize: 13,
+      fontWeight: '600',
     },
     statCardValue: {
       fontSize: 32,
@@ -949,13 +728,26 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       fontSize: 13,
       marginTop: 2,
     },
-    statCardIcon: {
-      position: 'absolute',
-      opacity: 0.8,
-    },
 
     // TIME PLAN
-    timePlanCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 16 },
+    timePlanCard: { borderRadius: 14, padding: 14, marginBottom: 16 },
+
+    // Elevated card style (white background + shadow)
+    cardElevated: {
+      backgroundColor: tokens.bgPrimary,
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+        },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as any,
+      }),
+    },
     timePlanTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.7, marginBottom: 10 },
     timePlanBar: {
       height: 24,
@@ -989,6 +781,16 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
     },
     ghostBtnText: { fontSize: 12, fontWeight: '500' },
+    viewToggle: {
+      flexDirection: 'row',
+      borderRadius: 8,
+      borderWidth: 1,
+      padding: 2,
+    },
+    viewToggleBtn: {
+      padding: 6,
+      borderRadius: 6,
+    },
 
     // Search
     searchSection: { marginBottom: 12 },
@@ -1018,6 +820,13 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
       padding: 12,
       borderWidth: StyleSheet.hairlineWidth,
       marginBottom: 16,
+    },
+    timelineCard: {
+      borderRadius: 16,
+      padding: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      marginBottom: 16,
+      height: 450,
     },
     taskItemWrapper: {
       paddingVertical: 4,
