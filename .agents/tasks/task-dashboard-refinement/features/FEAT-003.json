@@ -1,0 +1,47 @@
+{
+  "id": "FEAT-003",
+  "type": "refactor",
+  "description": "Polish the three external planner/calendar components used in OverviewTab: ProductivityScore.tsx, GoalSetting.tsx, and Heatmap.tsx. Removes ALL-CAPS treatment from section headings, reduces card border weight to hairlineWidth, and adds missing lineHeight values. All three files are independent of each other and of index.tsx changes (FEAT-004).",
+  "status": "completed",
+  "steps": [
+    "1. Ensure branch 'feat/dashboard-ui-refinement' is checked out: git -C /Users/parteek.kumar/Dev/common-tasks/daily-planner checkout feat/dashboard-ui-refinement",
+    "2. Read the FULL file src/components/planner/ProductivityScore.tsx before making any changes.",
+    "3. In ProductivityScore.tsx makeStyles function, change the 'card' style: borderWidth from 1 to StyleSheet.hairlineWidth. Ensure StyleSheet is imported from 'react-native' (it already is).",
+    "4. In ProductivityScore.tsx makeStyles function, change the 'headerText' style: remove textTransform: 'uppercase', remove letterSpacing: 0.8, change fontSize from 12 to 13, add lineHeight: 20. Keep fontWeight: '600' as-is.",
+    "5. Read the FULL file src/components/planner/GoalSetting.tsx before making any changes.",
+    "6. In GoalSetting.tsx makeStyles function, change the 'card' style: borderWidth from 1 to StyleSheet.hairlineWidth.",
+    "7. In GoalSetting.tsx makeStyles function, change the 'addFormCard' style: borderWidth from 1 to StyleSheet.hairlineWidth. The backgroundColor: 'transparent' stays unchanged.",
+    "8. In GoalSetting.tsx makeStyles function, change the 'sectionTitle' style: remove textTransform: 'uppercase', remove letterSpacing: 0.8, change fontSize from 12 to 13, add lineHeight: 20. Keep fontWeight: '600' as-is.",
+    "9. Read the FULL file src/components/calendar/Heatmap.tsx before making any changes.",
+    "10. In Heatmap.tsx, change the module-level 'styles' object (at the bottom of the file): (a) card.borderWidth: change from 1 to StyleSheet.hairlineWidth. (b) title style: change fontWeight from '700' to '600', remove letterSpacing: 0.6, add lineHeight: 16. Keep fontSize: 11 (it fits the tight desktop header row). Ensure StyleSheet is imported from 'react-native'.",
+    "11. In Heatmap.tsx, change the 'makeMobileStyles' factory function: in the 'title' style, change fontSize from 11 to 13, change fontWeight from '700' to '600', remove letterSpacing: 0.6, add lineHeight: 20.",
+    "12. In Heatmap.tsx MobileMonthHeatmap component JSX: change the ACTIVITY text string from 'ACTIVITY' to 'Activity' (single occurrence in the sectionHeader View).",
+    "13. In Heatmap.tsx main Heatmap component JSX (desktop path): change both occurrences of 'ACTIVITY (LAST 12 MONTHS)' to 'Activity (last 12 months)'. One occurrence is in the regular desktop view, one is in the empty-state (!hasData && isWide) return.",
+    "14. Run 'npx tsc --noEmit' from /Users/parteek.kumar/Dev/common-tasks/daily-planner. Fix any TypeScript errors before proceeding.",
+    "15. Run 'npx vitest --run' from /Users/parteek.kumar/Dev/common-tasks/daily-planner. All 18 tests must pass.",
+    "16. Stage only the three changed files: git add src/components/planner/ProductivityScore.tsx src/components/planner/GoalSetting.tsx src/components/calendar/Heatmap.tsx",
+    "17. Commit: git commit -m 'refactor(dashboard): sentence-case headings and hairline borders in ProductivityScore, GoalSetting, Heatmap'. Record the commit hash in findings."
+  ],
+  "acceptance_criteria": [
+    "ProductivityScore card.borderWidth is StyleSheet.hairlineWidth (not 1)",
+    "ProductivityScore headerText has no textTransform:'uppercase' and no letterSpacing property",
+    "ProductivityScore headerText fontSize is 13 with lineHeight: 20",
+    "GoalSetting card.borderWidth is StyleSheet.hairlineWidth",
+    "GoalSetting addFormCard.borderWidth is StyleSheet.hairlineWidth",
+    "GoalSetting sectionTitle has no textTransform:'uppercase' and no letterSpacing property",
+    "GoalSetting sectionTitle fontSize is 13 with lineHeight: 20",
+    "Heatmap styles.card.borderWidth is StyleSheet.hairlineWidth",
+    "Heatmap styles.title has fontWeight '600', no letterSpacing, lineHeight: 16",
+    "Heatmap makeMobileStyles title has fontSize 13, fontWeight '600', no letterSpacing, lineHeight: 20",
+    "Heatmap MobileMonthHeatmap renders 'Activity' (not 'ACTIVITY')",
+    "Heatmap desktop renders 'Activity (last 12 months)' (not 'ACTIVITY (LAST 12 MONTHS)') in both regular and empty-state paths",
+    "npx tsc --noEmit exits with zero errors",
+    "npx vitest --run passes all 18 tests"
+  ],
+  "verification": [
+    "cd /Users/parteek.kumar/Dev/common-tasks/daily-planner && npx tsc --noEmit",
+    "cd /Users/parteek.kumar/Dev/common-tasks/daily-planner && npx vitest --run"
+  ],
+  "blocked_reason": null,
+  "findings": "commit e6a88b0 on feat/dashboard-ui-refinement"
+}

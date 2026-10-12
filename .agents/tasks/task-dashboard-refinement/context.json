@@ -1,0 +1,26 @@
+{
+  "project_type": "React Native + Expo cross-platform app (iOS, Android, Web) with Expo Router file-based navigation",
+  "language": "TypeScript",
+  "build_system": "Expo (expo start / expo start --web). No separate compile step. TypeScript checked via npx tsc --noEmit. Quirk: strict mode enabled in tsconfig.json, moduleResolution: bundler.",
+  "test_framework": "vitest 5.0.2 — property-based tests using fast-check for utility functions only. No UI component tests.",
+  "build_command": "npx tsc --noEmit",
+  "test_command": "npx vitest --run",
+  "verification_instructions": "1) Run 'npx tsc --noEmit' from workspace root — must have zero errors. 2) Run 'npx vitest --run' — all 18 existing tests must pass. These are the only automated checks available; visual verification requires Expo dev server.",
+  "snapshot_or_generated_files": null,
+  "environment_constraints": "Do not start the Expo dev server. Do not push to remote. Commit locally on branch 'feat/dashboard-ui-refinement'. Use 'git add <specific-file>' not 'git add .'",
+  "contribution_requirements": "All colors from useTheme().tokens — never hardcode hex values. All spacing from token values — no magic numbers (note: some values like fontSize:13 and lineHeight:20 have no exact token match but are part of the established sectionTitle style pattern). StyleSheet.create via makeStyles(tokens) factory for standalone components. index.tsx uses a module-level s = StyleSheet.create({}) with tokens passed inline via style prop arrays — this is the pre-existing pattern, continue it. No new dependencies.",
+  "key_patterns": "makeStyles(tokens) factory pattern: standalone components (ProductivityScore, GoalSetting) define 'function makeStyles(tokens: ReturnType<typeof useTheme>[\"tokens\"])' returning StyleSheet.create({...}). Called as 'const styles = makeStyles(tokens)' after 'const { tokens } = useTheme()'. index.tsx uses module-level 's = StyleSheet.create({})' and 'st = StyleSheet.create({})' — tokens are passed inline via JSX style arrays like [s.someStyle, { color: tokens.textMuted }].\n\nEstablished sectionTitle pattern (from Statistics tab): { fontSize: 13, fontWeight: '600', lineHeight: 20, flex: 1 } — NO textTransform, NO letterSpacing. Small uppercase metadata labels (TODAY, STREAK) keep { fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }.\n\nCard border pattern: borderWidth: StyleSheet.hairlineWidth (not 1).\n\nText-overflow rule: every Text style needs explicit lineHeight (fontSize 12 → lineHeight 18, fontSize 14 → lineHeight 20, fontSize 11 → lineHeight 16, fontSize 10 → lineHeight 14).",
+  "key_token_names": "bgPrimary, bgSecondary, bgTertiary, bgInput, bgAccentSoft, bgElevated, accentPrimaryLight; borderPrimary, borderSecondary; textPrimary, textSecondary, textMuted; accentBlue, accentGreen, accentOrange, accentRed, accentPurple, accentPrimary, accentPrimaryMuted, accentPrimaryLight; spacing.xs=4, sm=8, md=12, lg=16, xl=24, xxl=32, xxxl=48; typography.display=32, title=24, heading=20, subheading=17, body=15, caption=13, label=11; StyleSheet.hairlineWidth for thin borders",
+  "relevant_files": [
+    "app/(tabs)/index.tsx",
+    "src/components/planner/WeeklyReport.tsx",
+    "src/components/planner/LineChart.tsx",
+    "src/components/planner/ProductivityScore.tsx",
+    "src/components/planner/GoalSetting.tsx",
+    "src/components/calendar/Heatmap.tsx",
+    "src/theme/tokens.ts",
+    "src/hooks/useTheme.tsx",
+    "src/lib/utils.ts"
+  ],
+  "directory_structure": "app/(tabs)/index.tsx — main dashboard screen with OverviewTab (stats grid, progress card, Heatmap, GoalSetting, ProductivityScore), StatisticsTab (already refined), ActivityTab (7-day grid, recent activity feed) as inline sub-components; src/components/planner/ — standalone components (WeeklyReport done, LineChart done, ProductivityScore needs work, GoalSetting needs work); src/components/calendar/Heatmap.tsx — heatmap with mobile monthly and desktop 52-week views (needs work); src/theme/tokens.ts — DARK_TOKENS and LIGHT_TOKENS; .agents/tasks/ — plan artifacts (outside worktree, never committed)"
+}

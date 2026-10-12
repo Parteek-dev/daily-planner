@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add task completion and deletion animations to UnifiedTaskItem. Checkbox gets a scale bounce on completion, title gets animated strikethrough, and delete triggers a slide-out-left with height collapse. Uses existing useMotion hook for reduced motion support.",
+  "status": "completed",
+  "steps": [
+    "1. Open src/components/task/UnifiedTaskItem.tsx. Import Animated, useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS, interpolate from react-native-reanimated. Import useMotion from @/src/hooks/useMotion.",
+    "2. Add shared values for checkbox animation: checkboxScale (default 1). Add shared values for strikethrough: strikethroughProgress (0 to 1). Add shared values for delete animation: itemTranslateX (default 0), itemOpacity (default 1), itemHeight (track actual height via onLayout).",
+    "3. Create useAnimatedStyle for checkbox scale: transform [{ scale: checkboxScale.value }]. Apply to Pressable wrapping the checkbox icons using Animated.createAnimatedComponent(Pressable).",
+    "4. Create useAnimatedStyle for title strikethrough: use textDecorationLine: task.completed ? 'line-through' : 'none' as before, but animate opacity from 1 to 0.6 when completed. The strikethrough line itself can use a decorative View overlay with animated width from 0 to 100% (interpolate strikethroughProgress).",
+    "5. Modify onToggle handler: if motion not reduced, animate checkboxScale to 1.2 with withSpring(bouncy), then back to 1. Animate strikethroughProgress to 1 if completing, 0 if uncompleting.",
+    "6. Create handleDelete wrapper: animate itemTranslateX to -width (e.g., -300) and itemOpacity to 0 with withTiming(200ms). Use runOnJS to call the actual onDelete after animation completes via the callback parameter of withTiming.",
+    "7. Wrap the outer container View with Animated.View and apply itemTranslateX/itemOpacity styles. Add onLayout to measure and store height for proper collapse.",
+    "8. Ensure all animations respect motion.reducedMotion — skip animations and execute immediately if reduced motion is enabled.",
+    "9. Preserve existing numberOfLines={2} on title Text and existing lineHeight styles to avoid text clipping during animations."
+  ],
+  "acceptance_criteria": [
+    "Checkbox scales to 1.2 then back to 1 when toggling task completion",
+    "Task title opacity animates to 0.6 when completed",
+    "Delete button triggers slide-left animation before removing the item",
+    "Animations are skipped when reduced motion is enabled",
+    "Existing text truncation (numberOfLines) still works",
+    "No visual glitches on iOS, Android, or web"
+  ],
+  "verification": [
+    "npx vitest --run",
+    "Manual test: Toggle task completion on iOS, Android, web — verify checkbox bounce and title fade",
+    "Manual test: Delete a task — verify slide-out animation",
+    "Manual test: Enable reduced motion in system settings — verify animations are instant"
+  ],
+  "blocked_reason": null,
+  "findings": "Implemented task completion animation with checkbox scale bounce (1.2x with bouncy spring, then back to 1 with snappy spring) and title opacity fade (1 to 0.6 on completion). Delete animation slides item left (-300px) with 200ms timing and fades out, using runOnJS to call onDelete after animation completes. All animations respect useMotion().reducedMotion - skipped when user has reduced motion enabled. Preserved existing numberOfLines={2} and lineHeight styles on title. Used Animated.createAnimatedComponent(Pressable) for animated checkbox and Animated.View for container. No hardcoded colors - all from theme tokens."
+}

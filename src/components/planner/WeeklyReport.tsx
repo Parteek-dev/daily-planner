@@ -10,17 +10,17 @@
  */
 
 import React, { useState } from 'react'
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import {
   ChevronLeft,
   ChevronRight,
   Clock,
   CheckCircle2,
   TrendingUp,
-  TrendingDown,
 } from 'lucide-react-native'
 import { useTheme } from '@/src/hooks/useTheme'
 import { fmtDuration } from '@/src/lib/utils'
+import Svg, { Rect, Defs, LinearGradient, Stop } from 'react-native-svg'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,6 @@ export interface WeeklyReportProps {
   thisWeek: WeeklyReportData
   lastWeek: WeeklyReportData
   getWeeklyReport: (weeksAgo: number) => WeeklyReportData
-  getTopicColor: (topic: string) => string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,25 +58,6 @@ export interface WeeklyReportProps {
 function fmtDelta(mins: number): string {
   const sign = mins >= 0 ? '+' : '-'
   return sign + fmtDuration(Math.abs(mins))
-}
-
-function weekSummary(report: WeeklyReportData, weeksAgo: number): string {
-  if (report.completedTasks === 0) {
-    return weeksAgo === 0
-      ? 'No tasks completed yet this week — get started!'
-      : 'No tasks were completed this week.'
-  }
-  const best = report.dailyBreakdown.reduce<DailyBreakdown | null>(
-    (b, d) => (d.completed > (b?.completed ?? 0) ? d : b),
-    null,
-  )
-  const dayLabel = weeksAgo === 0 && best?.isToday ? 'today' : best?.dayName ?? ''
-  if (best && best.completed > 0) {
-    const taskPart = `${best.completed} task${best.completed !== 1 ? 's' : ''}`
-    const durationPart = best.minutes > 0 ? ` · ${fmtDuration(best.minutes)} focused` : ''
-    return `Best day · ${dayLabel}\n${taskPart}${durationPart}`
-  }
-  return ''
 }
 
 function formatDate(dateStr: string): string {
@@ -93,185 +73,207 @@ export default function WeeklyReport({
   thisWeek,
   lastWeek,
   getWeeklyReport,
-  getTopicColor,
 }: WeeklyReportProps) {
   const { tokens } = useTheme()
   const styles = makeStyles(tokens)
 
   const [weeksAgo, setWeeksAgo] = useState(0)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const report = weeksAgo === 0 ? thisWeek : weeksAgo === 1 ? lastWeek : getWeeklyReport(weeksAgo)
   const prevWeek = weeksAgo === 0 ? lastWeek : getWeeklyReport(weeksAgo + 1)
 
   const tasksTrend = report.completedTasks - prevWeek.completedTasks
   const minutesTrend = report.totalMinutes - prevWeek.totalMinutes
+  const productivityTrend = report.completionRate - prevWeek.completionRate
 
   const hours = Math.floor(report.totalMinutes / 60)
   const mins = report.totalMinutes % 60
 
   const todayStr = new Date().toISOString().split('T')[0]
   const days = report.dailyBreakdown.map(d => ({ ...d, isToday: d.date === todayStr }))
-  const maxCompleted = Math.max(...days.map(d => d.completed), 1)
 
-  const allZero = days.every(d => d.completed === 0)
+  // Calculate daily productivity percentages based on completion
+  const dailyProductivity = days.map(day => {
+    // Simple productivity: if tasks were done that day, calculate completion rate
+    // For now, use a simple heuristic: completed tasks / expected daily average
+    const avgDaily = report.completedTasks / 7
+    if (avgDaily === 0) return 0
+    return Math.min(100, Math.round((day.completed / Math.max(avgDaily, 1)) * 100))
+  })
+  const maxProductivity = Math.max(...dailyProductivity, 1)
 
   const periodLabel =
     weeksAgo === 0 ? 'This Week' : weeksAgo === 1 ? 'Last Week' : `${weeksAgo} weeks ago`
 
-  const sortedTopics = Object.entries(report.topicBreakdown).sort((a, b) => b[1].count - a[1].count).slice(0, 5)
-  const maxTopicCount = Math.max(...sortedTopics.map(([, s]) => s.count), 1)
+  // Format trend percentage
+  const tasksTrendPct = prevWeek.completedTasks > 0
+    ? Math.round((tasksTrend / prevWeek.completedTasks) * 100)
+    : tasksTrend > 0 ? 100 : 0
+  const minutesTrendPct = prevWeek.totalMinutes > 0
+    ? Math.round((minutesTrend / prevWeek.totalMinutes) * 100)
+    : minutesTrend > 0 ? 100 : 0
 
   return (
-    <View style={styles.card}>
-      {/* Header */}
+    <View style={styles.container}>
+      {/* Header with week navigation */}
       <View style={styles.headerRow}>
-        <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>Weekly report</Text>
+        <View>
+          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>Weekly report</Text>
+          <Text style={[styles.dateRange, { color: tokens.textMuted }]}>
+            {formatDate(report.startDate)} — {formatDate(report.endDate)}
+          </Text>
+        </View>
         <View style={styles.navRow}>
           <Pressable onPress={() => setWeeksAgo(p => p + 1)} style={styles.navBtn} accessibilityLabel="Previous week">
-            <ChevronLeft size={16} color={tokens.textSecondary} />
+            <ChevronLeft size={18} color={tokens.textSecondary} />
           </Pressable>
           <Text style={[styles.periodLabel, { color: tokens.textSecondary }]}>{periodLabel}</Text>
           <Pressable
             onPress={() => setWeeksAgo(p => Math.max(0, p - 1))}
             disabled={weeksAgo === 0}
-            style={[styles.navBtn, { opacity: weeksAgo === 0 ? 0.3 : 1 }]}
+            style={[styles.navBtnRight, { opacity: weeksAgo === 0 ? 0.3 : 1, borderColor: tokens.borderPrimary }]}
             accessibilityLabel="Next week"
           >
-            <ChevronRight size={16} color={tokens.textSecondary} />
+            <ChevronRight size={18} color={tokens.textSecondary} />
           </Pressable>
         </View>
       </View>
 
-      {/* Date range */}
-      <Text style={[styles.dateRange, { color: tokens.textMuted }]}>
-        {formatDate(report.startDate)} — {formatDate(report.endDate)}
-      </Text>
-
-      {/* Stats row */}
+      {/* Stats cards row */}
       <View style={styles.statsRow}>
-        {/* Tasks done */}
-        <View style={[styles.statBox, { backgroundColor: tokens.bgInput }]}>
-          <View style={styles.statValueRow}>
-            <CheckCircle2 size={14} color={tokens.accentGreen} />
-            <Text style={[styles.statValue, { color: tokens.textPrimary }]}>{report.completedTasks}</Text>
+        {/* Focus Time */}
+        <View style={[styles.statCard, { backgroundColor: `${tokens.accentBlue}15`, borderColor: `${tokens.accentBlue}30` }]}>
+          <View style={styles.statIconRow}>
+            <Clock size={16} color={tokens.accentBlue} />
+            <Text style={[styles.statCardLabel, { color: tokens.accentBlue }]}>Focus Time</Text>
           </View>
-          <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Tasks completed</Text>
-          {tasksTrend !== 0 && (
-            <View style={styles.trendRow}>
-              {tasksTrend > 0
-                ? <TrendingUp size={10} color={tokens.accentGreen} />
-                : <TrendingDown size={10} color={tokens.accentRed} />}
-              <Text style={{ fontSize: 10, color: tasksTrend > 0 ? tokens.accentGreen : tokens.accentRed }} numberOfLines={1}>
-                {tasksTrend > 0 ? '+' : ''}{tasksTrend} vs prior
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Time spent */}
-        <View style={[styles.statBox, { backgroundColor: tokens.bgInput }]}>
-          <View style={styles.statValueRow}>
-            <Clock size={14} color={tokens.accentBlue} />
-            <Text style={[styles.statValue, { color: tokens.textPrimary }]}>
-              {hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`}
-            </Text>
-          </View>
-          <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Time focused</Text>
+          <Text style={[styles.statCardValue, { color: tokens.textPrimary }]}>
+            {hours > 0 ? `${hours}h ${mins > 0 ? `${mins}m` : ''}` : `${mins}m`}
+          </Text>
           {minutesTrend !== 0 && (
-            <View style={styles.trendRow}>
-              {minutesTrend > 0
-                ? <TrendingUp size={10} color={tokens.accentGreen} />
-                : <TrendingDown size={10} color={tokens.accentRed} />}
-              <Text style={{ fontSize: 10, color: minutesTrend > 0 ? tokens.accentGreen : tokens.accentRed }} numberOfLines={1}>
-                {fmtDelta(minutesTrend)} vs prior
-              </Text>
-            </View>
+            <Text style={[styles.statTrend, { color: minutesTrend > 0 ? tokens.accentGreen : tokens.accentRed }]}>
+              {minutesTrend > 0 ? '+' : ''}{minutesTrendPct}%
+            </Text>
           )}
         </View>
 
-        {/* Completion % */}
-        <View style={[styles.statBox, { backgroundColor: tokens.bgInput }]}>
-          <Text style={[styles.statValue, { color: report.completionRate === 100 ? tokens.accentGreen : tokens.textPrimary }]}>
+        {/* Tasks Done */}
+        <View style={[styles.statCard, { backgroundColor: `${tokens.accentGreen}15`, borderColor: `${tokens.accentGreen}30` }]}>
+          <View style={styles.statIconRow}>
+            <CheckCircle2 size={16} color={tokens.accentGreen} />
+            <Text style={[styles.statCardLabel, { color: tokens.accentGreen }]}>Tasks Done</Text>
+          </View>
+          <Text style={[styles.statCardValue, { color: tokens.textPrimary }]}>
+            {report.completedTasks}
+          </Text>
+          {tasksTrend !== 0 && (
+            <Text style={[styles.statTrend, { color: tasksTrend > 0 ? tokens.accentGreen : tokens.accentRed }]}>
+              {tasksTrend > 0 ? '+' : ''}{tasksTrendPct}%
+            </Text>
+          )}
+        </View>
+
+        {/* Productivity */}
+        <View style={[styles.statCard, { backgroundColor: `${tokens.accentOrange}15`, borderColor: `${tokens.accentOrange}30` }]}>
+          <View style={styles.statIconRow}>
+            <TrendingUp size={16} color={tokens.accentOrange} />
+            <Text style={[styles.statCardLabel, { color: tokens.accentOrange }]}>Productivity</Text>
+          </View>
+          <Text style={[styles.statCardValue, { color: tokens.textPrimary }]}>
             {report.completionRate}%
           </Text>
-          <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Completion</Text>
+          {productivityTrend !== 0 && (
+            <Text style={[styles.statTrend, { color: productivityTrend > 0 ? tokens.accentGreen : tokens.accentRed }]}>
+              {productivityTrend > 0 ? '+' : ''}{productivityTrend}%
+            </Text>
+          )}
         </View>
       </View>
 
-      {/* Summary sentence */}
-      <Text style={[styles.summary, { color: tokens.textSecondary }]}>
-        {weekSummary(report, weeksAgo)}
-      </Text>
+      {/* Productivity Overview chart */}
+      <View style={[styles.chartCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+        <Text style={[styles.chartTitle, { color: tokens.textPrimary }]}>Productivity Overview</Text>
 
-      {/* Daily bar chart */}
-      <View style={styles.chartSection}>
-        <Text style={[styles.chartTitle, { color: tokens.textSecondary }]}>Daily activity</Text>
-        {allZero ? (
-          <View style={styles.barEmptyState}>
-            <Text style={[styles.barEmptyText, { color: tokens.textMuted }]}>No activity this week</Text>
+        {/* Y-axis labels + bars */}
+        <View style={styles.chartArea}>
+          <View style={styles.yAxis}>
+            <Text style={[styles.yLabel, { color: tokens.textMuted }]}>100%</Text>
+            <Text style={[styles.yLabel, { color: tokens.textMuted }]}>75%</Text>
+            <Text style={[styles.yLabel, { color: tokens.textMuted }]}>50%</Text>
+            <Text style={[styles.yLabel, { color: tokens.textMuted }]}>25%</Text>
+            <Text style={[styles.yLabel, { color: tokens.textMuted }]}>0%</Text>
           </View>
-        ) : (
-          <View style={styles.barsContainer}>
-            {days.map((day, i) => {
-              const barH = day.completed > 0
-                ? Math.max(4, Math.round((day.completed / maxCompleted) * 46))
-                : 6
-              const isActive = day.completed > 0
-              return (
-                <View key={i} style={styles.barColumn}>
-                  {isActive && (
-                    <Text style={[styles.barCount, { color: day.isToday ? tokens.accentBlue : tokens.textSecondary }]}>
-                      {day.completed}
+
+          <View style={styles.barsArea}>
+            {/* Horizontal grid lines */}
+            <View style={[styles.gridLine, { top: 0, backgroundColor: tokens.borderPrimary }]} />
+            <View style={[styles.gridLine, { top: '25%', backgroundColor: tokens.borderPrimary }]} />
+            <View style={[styles.gridLine, { top: '50%', backgroundColor: tokens.borderPrimary }]} />
+            <View style={[styles.gridLine, { top: '75%', backgroundColor: tokens.borderPrimary }]} />
+            <View style={[styles.gridLine, { bottom: 0, backgroundColor: tokens.borderPrimary }]} />
+
+            {/* Bars */}
+            <View style={styles.barsContainer}>
+              {days.map((day, i) => {
+                const pct = dailyProductivity[i]
+                const barH = pct > 0 ? Math.max(8, (pct / 100) * 120) : 4
+                const isSelected = selectedDay === i
+                const isActive = pct > 0
+
+                return (
+                  <Pressable
+                    key={i}
+                    style={styles.barColumn}
+                    onPress={() => setSelectedDay(isSelected ? null : i)}
+                    accessibilityLabel={`${day.dayName}: ${pct}% productivity`}
+                  >
+                    {/* Tooltip */}
+                    {isSelected && isActive && (
+                      <View style={[styles.tooltip, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
+                        <Text style={[styles.tooltipDay, { color: tokens.textSecondary }]}>{day.dayName}</Text>
+                        <Text style={[styles.tooltipValue, { color: tokens.textPrimary }]}>{pct}%</Text>
+                      </View>
+                    )}
+
+                    {/* Bar */}
+                    <View style={styles.barWrapper}>
+                      <Svg width="100%" height={barH}>
+                        <Defs>
+                          <LinearGradient id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                            <Stop offset="0" stopColor={tokens.accentPrimary} stopOpacity="1" />
+                            <Stop offset="1" stopColor={tokens.accentPrimary} stopOpacity="0.5" />
+                          </LinearGradient>
+                        </Defs>
+                        <Rect
+                          x="0"
+                          y="0"
+                          width="100%"
+                          height={barH}
+                          rx={6}
+                          fill={isActive ? `url(#grad-${i})` : tokens.bgInput}
+                        />
+                      </Svg>
+                    </View>
+
+                    {/* Day label */}
+                    <Text
+                      style={[
+                        styles.dayLabel,
+                        {
+                          color: day.isToday ? tokens.accentPrimary : tokens.textMuted,
+                          fontWeight: day.isToday ? '600' : '400',
+                        },
+                      ]}
+                    >
+                      {day.dayName}
                     </Text>
-                  )}
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: barH,
-                        backgroundColor: day.isToday
-                          ? tokens.accentBlue
-                          : isActive
-                            ? 'rgba(99,102,241,0.5)'
-                            : tokens.bgInput,
-                        borderWidth: isActive || day.isToday ? 0 : 1,
-                        borderColor: tokens.borderPrimary,
-                      },
-                    ]}
-                  />
-                  <Text style={[styles.dayLabel, { color: day.isToday ? tokens.accentBlue : tokens.textMuted, fontWeight: day.isToday ? '700' : '400' }]}>
-                    {day.dayName}
-                  </Text>
-                </View>
-              )
-            })}
-          </View>
-        )}
-      </View>
-
-      {/* Topic breakdown */}
-      {sortedTopics.length > 0 && (
-        <View>
-          <Text style={[styles.chartTitle, { color: tokens.textSecondary }]}>By topic</Text>
-          <View style={styles.topicBarList}>
-            {sortedTopics.map(([topic, stats]) => {
-              const fillPct = maxTopicCount > 0 ? (stats.count / maxTopicCount) * 100 : 0
-              const topicColor = getTopicColor(topic)
-              return (
-                <View key={topic} style={styles.topicBarRow}>
-                  <View style={styles.topicBarHeader}>
-                    <View style={[styles.topicDot, { backgroundColor: topicColor }]} />
-                    <Text style={[styles.topicBarName, { color: tokens.textSecondary }]} numberOfLines={1}>{topic}</Text>
-                    <Text style={[styles.topicBarCount, { color: tokens.textPrimary }]}>{stats.count}</Text>
-                  </View>
-                  <View style={[styles.topicBarTrack, { backgroundColor: tokens.bgInput }]}>
-                    <View style={[styles.topicBarFill, { width: `${fillPct}%` as any, backgroundColor: topicColor }]} />
-                  </View>
-                </View>
-              )
-            })}
+                  </Pressable>
+                )
+              })}
+            </View>
           </View>
         </View>
-      )}
+      </View>
     </View>
   )
 }
@@ -280,23 +282,21 @@ export default function WeeklyReport({
 
 function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
   return StyleSheet.create({
-    card: {
-      backgroundColor: tokens.bgSecondary,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: tokens.borderPrimary,
+    container: {
+      gap: 16,
     },
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
+      alignItems: 'flex-start',
     },
     sectionTitle: {
-      fontSize: 13,
+      fontSize: 16,
       fontWeight: '600',
-      letterSpacing: 0.3,
+    },
+    dateRange: {
+      fontSize: 12,
+      marginTop: 2,
     },
     navRow: {
       flexDirection: 'row',
@@ -306,132 +306,129 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     navBtn: {
       padding: 4,
     },
+    navBtnRight: {
+      padding: 4,
+      borderWidth: 1,
+      borderRadius: 6,
+    },
     periodLabel: {
-      fontSize: 12,
-      minWidth: 120,
+      fontSize: 13,
+      fontWeight: '500',
+      minWidth: 80,
       textAlign: 'center',
     },
-    dateRange: {
-      fontSize: 12,
-      marginBottom: 16,
-    },
+
+    // Stats cards row
     statsRow: {
       flexDirection: 'row',
-      gap: 8,
-      marginBottom: 16,
+      gap: 10,
     },
-    statBox: {
+    statCard: {
       flex: 1,
-      borderRadius: 10,
-      padding: 10,
-      alignItems: 'center',
-    },
-    statValueRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 1,
       gap: 4,
-      marginBottom: 2,
     },
-    statValue: {
-      fontSize: 22,
-      fontWeight: '700',
-      lineHeight: 28,
-    },
-    statLabel: {
-      fontSize: 11,
-      textAlign: 'center',
-    },
-    trendRow: {
+    statIconRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 2,
-      marginTop: 3,
-      maxWidth: '100%' as any,
+      gap: 6,
     },
-    summary: {
-      fontSize: 12,
-      lineHeight: 22,
-      marginBottom: 16,
-    },
-    chartSection: {
-      marginBottom: 16,
-    },
-    chartTitle: {
+    statCardLabel: {
       fontSize: 12,
       fontWeight: '500',
-      marginBottom: 8,
+    },
+    statCardValue: {
+      fontSize: 22,
+      fontWeight: '700',
+      marginTop: 4,
+    },
+    statTrend: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+
+    // Productivity Overview chart card
+    chartCard: {
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    chartTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginBottom: 16,
+    },
+    chartArea: {
+      flexDirection: 'row',
+      height: 150,
+    },
+    yAxis: {
+      width: 36,
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      paddingRight: 8,
+      paddingBottom: 20,
+    },
+    yLabel: {
+      fontSize: 10,
+    },
+    barsArea: {
+      flex: 1,
+      position: 'relative',
+    },
+    gridLine: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: StyleSheet.hairlineWidth,
     },
     barsContainer: {
       flexDirection: 'row',
-      gap: 6,
+      flex: 1,
       alignItems: 'flex-end',
-      height: 72,
-    },
-    barEmptyState: {
-      height: 72,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    barEmptyText: {
-      fontSize: 12,
-      lineHeight: 18,
+      paddingBottom: 20,
+      gap: 8,
     },
     barColumn: {
       flex: 1,
       alignItems: 'center',
-      gap: 3,
+      justifyContent: 'flex-end',
       height: '100%',
+    },
+    barWrapper: {
+      width: '100%',
+      maxWidth: 32,
+      alignItems: 'center',
       justifyContent: 'flex-end',
     },
-    barCount: {
-      fontSize: 10,
-      fontWeight: '700',
-      lineHeight: 12,
-    },
-    bar: {
-      width: '100%',
-      borderRadius: 4,
-      // height set dynamically
-    },
     dayLabel: {
-      fontSize: 10,
+      fontSize: 11,
+      marginTop: 8,
     },
-    topicDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 2,
-      flexShrink: 0,
-    },
-    topicBarList: {
-      gap: 10,
-    },
-    topicBarRow: {
-      gap: 4,
-    },
-    topicBarHeader: {
-      flexDirection: 'row',
+    tooltip: {
+      position: 'absolute',
+      bottom: '100%',
+      marginBottom: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
       alignItems: 'center',
-      gap: 6,
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
-    topicBarName: {
-      fontSize: 12,
-      flex: 1,
-      lineHeight: 18,
+    tooltipDay: {
+      fontSize: 11,
     },
-    topicBarCount: {
-      fontSize: 12,
-      fontWeight: '600',
-      flexShrink: 0,
-      lineHeight: 18,
-    },
-    topicBarTrack: {
-      height: 4,
-      borderRadius: 99,
-      overflow: 'hidden',
-    },
-    topicBarFill: {
-      height: '100%',
-      borderRadius: 99,
+    tooltipValue: {
+      fontSize: 14,
+      fontWeight: '700',
     },
   })
 }
