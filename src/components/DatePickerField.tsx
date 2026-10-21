@@ -1,28 +1,33 @@
 /**
  * DatePickerField — cross-platform date input.
  *
- * Platform strategy:
- *   iOS/Android: Tries to use @react-native-community/datetimepicker if installed.
- *                Falls back to a validated TextInput (YYYY-MM-DD) if not available.
- *   web:         Renders <input type="date"> via TextInput with inputMode/type props.
+ * One themed implementation on iOS / Android / Web: a Pressable trigger styled
+ * from tokens shows the formatted date (or placeholder), and opening it reveals
+ * the themed CalendarPicker inside a Modal overlay — a centered card on web/wide
+ * viewports and a bottom-sheet card on mobile. No <input type="date"> and no
+ * native datetimepicker module.
  *
- * value and onChange deal exclusively in YYYY-MM-DD strings.
+ * value and onChange deal exclusively in YYYY-MM-DD strings ('' when unset).
  *
  * Requirements: 7.1
  */
 
-import React, { useState } from 'react'
-import { View, Text, TextInput, StyleSheet, Platform } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import {
+  View,
+  Text,
+  Pressable,
+  Modal,
+  StyleSheet,
+  Platform,
+  useWindowDimensions,
+  type PressableStateCallbackType,
+} from 'react-native'
 import { useTheme } from '@/src/hooks/useTheme'
-
-// Attempt to lazily require the native date picker without crashing if absent.
-let DateTimePicker: React.ComponentType<any> | null = null
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  DateTimePicker = require('@react-native-community/datetimepicker').default
-} catch {
-  DateTimePicker = null
-}
+import { applyElevation, type Tokens } from '@/src/theme/tokens'
+import { SIDEBAR_BREAKPOINT } from '@/src/constants'
+import { formatDateDisplay } from '@/src/lib/datetime'
+import { CalendarPicker } from '@/src/components/CalendarPicker'
 
 export interface DatePickerFieldProps {
   readonly value: string
@@ -31,180 +36,137 @@ export interface DatePickerFieldProps {
   readonly placeholder?: string
 }
 
-/** Convert YYYY-MM-DD → Date (midnight UTC) */
-function parseYMD(ymd: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
-  const d = new Date(`${ymd}T00:00:00`)
-  return Number.isNaN(d.getTime()) ? null : d
-}
+type WebFocusProps = { focusable?: boolean }
 
-/** Convert Date → YYYY-MM-DD */
-function toYMD(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+// react-native-web adds `focused` to the Pressable state callback; the RN types
+// don't declare it, so extend the type for the web focus-ring styling.
+type PressableState = PressableStateCallbackType & { focused?: boolean }
 
-/** Validate that a raw text string is a proper YYYY-MM-DD date */
-function isValidYMD(str: string): boolean {
-  return parseYMD(str) !== null
-}
-
-// ── Web implementation ────────────────────────────────────────────────────────
-
-function DatePickerWeb({ value, onChange, label, placeholder }: DatePickerFieldProps) {
+export function DatePickerField({ value, onChange, label, placeholder }: DatePickerFieldProps) {
   const { tokens } = useTheme()
+  const { width } = useWindowDimensions()
+  const styles = useMemo(() => makeStyles(tokens), [tokens])
 
-  const styles = StyleSheet.create({
-    wrapper: { gap: 4 },
-    labelText: { fontSize: 13, color: tokens.textSecondary, fontWeight: '500' },
-    input: {
-      borderWidth: 1,
-      borderColor: tokens.borderPrimary,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      color: tokens.textPrimary,
-      backgroundColor: tokens.bgInput,
-      fontSize: 15,
-    },
-  })
+  const isMobile = !(Platform.OS === 'web' && width > SIDEBAR_BREAKPOINT)
+  const [open, setOpen] = useState(false)
 
-  return (
-    <View style={styles.wrapper}>
-      {label ? <Text style={styles.labelText}>{label}</Text> : null}
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={(text) => {
-          if (isValidYMD(text) || text === '') onChange(text)
-        }}
-        placeholder={placeholder ?? 'YYYY-MM-DD'}
-        placeholderTextColor={tokens.textMuted}
-        // On web these attrs render an <input type="date">
-        {...(Platform.OS === 'web' ? ({ type: 'date' } as any) : {})}
-        accessibilityLabel={label ?? 'Date'}
-        {...(Platform.OS !== 'web' ? { accessibilityHint: 'Enter a date in YYYY-MM-DD format' } : {})}
-      />
-    </View>
-  )
-}
+  const display = formatDateDisplay(value)
+  const hasValue = display !== ''
 
-// ── Native fallback (TextInput-based) ─────────────────────────────────────────
-
-function DatePickerTextFallback({ value, onChange, label, placeholder }: DatePickerFieldProps) {
-  const { tokens } = useTheme()
-  const [raw, setRaw] = useState(value)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleBlur = () => {
-    if (raw === '') {
-      setError(null)
-      onChange('')
-      return
-    }
-    if (isValidYMD(raw)) {
-      setError(null)
-      onChange(raw)
-    } else {
-      setError('Enter a date like: 2025-01-31')
-    }
+  const handleSelect = (ymd: string) => {
+    onChange(ymd)
   }
 
-  const styles = StyleSheet.create({
-    wrapper: { gap: 4 },
-    labelText: { fontSize: 13, color: tokens.textSecondary, fontWeight: '500' },
-    input: {
-      borderWidth: 1,
-      borderColor: error ? tokens.accentRed : tokens.borderPrimary,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      color: tokens.textPrimary,
-      backgroundColor: tokens.bgInput,
-      fontSize: 15,
-    },
-    errorText: { fontSize: 12, color: tokens.accentRed },
-  })
-
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.labelText}>{label}</Text> : null}
-      <TextInput
-        style={styles.input}
-        value={raw}
-        onChangeText={(text) => {
-          setRaw(text)
-          if (error) setError(null)
-        }}
-        onBlur={handleBlur}
-        placeholder={placeholder ?? 'YYYY-MM-DD'}
-        placeholderTextColor={tokens.textMuted}
-        keyboardType="numbers-and-punctuation"
+
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={({ pressed, focused }: PressableState) => [
+          styles.trigger,
+          focused && styles.triggerFocused,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
         accessibilityLabel={label ?? 'Date'}
-        {...(Platform.OS !== 'web' ? { accessibilityHint: 'Enter a date in YYYY-MM-DD format' } : {})}
-      />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {...(Platform.OS === 'web' ? ({ focusable: true } as WebFocusProps) : {})}
+      >
+        <Text
+          style={[styles.triggerText, !hasValue && styles.triggerPlaceholder]}
+          numberOfLines={1}
+        >
+          {hasValue ? display : placeholder ?? 'Select date'}
+        </Text>
+      </Pressable>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable
+          style={[styles.backdrop, isMobile ? styles.backdropMobile : styles.backdropCentered]}
+          onPress={() => setOpen(false)}
+          accessibilityLabel="Close date picker"
+        >
+          <Pressable
+            style={[styles.card, isMobile ? styles.cardMobile : styles.cardCentered]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <CalendarPicker
+              value={value}
+              onSelect={handleSelect}
+              onClose={() => setOpen(false)}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   )
 }
 
-// ── Native implementation using @react-native-community/datetimepicker ────────
-
-function DatePickerNative({ value, onChange, label, placeholder }: DatePickerFieldProps) {
-  const { tokens } = useTheme()
-  const [show, setShow] = useState(false)
-
-  const date = parseYMD(value) ?? new Date()
-
-  const styles = StyleSheet.create({
-    wrapper: { gap: 4 },
-    labelText: { fontSize: 13, color: tokens.textSecondary, fontWeight: '500' },
+function makeStyles(tokens: Tokens) {
+  return StyleSheet.create({
+    wrapper: {
+      gap: tokens.spacing.xs,
+    },
+    labelText: {
+      ...tokens.typography.caption,
+      color: tokens.textSecondary,
+    },
     trigger: {
       borderWidth: 1,
       borderColor: tokens.borderPrimary,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderRadius: tokens.radius.sm,
+      paddingHorizontal: tokens.spacing.md,
+      paddingVertical: tokens.spacing.md,
       backgroundColor: tokens.bgInput,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    triggerFocused: {
+      borderColor: tokens.borderFocus,
+    },
+    pressed: {
+      opacity: 0.7,
     },
     triggerText: {
-      fontSize: 15,
-      color: value ? tokens.textPrimary : tokens.textMuted,
+      ...tokens.typography.body,
+      color: tokens.textPrimary,
+    },
+    triggerPlaceholder: {
+      color: tokens.textMuted,
+    },
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    backdropCentered: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: tokens.spacing.lg,
+    },
+    backdropMobile: {
+      justifyContent: 'flex-end',
+    },
+    card: {
+      backgroundColor: tokens.bgElevated,
+      padding: tokens.spacing.lg,
+      ...applyElevation(tokens.elevation.lg),
+    },
+    cardCentered: {
+      width: '100%',
+      maxWidth: 360,
+      borderRadius: tokens.radius.lg,
+    },
+    cardMobile: {
+      width: '100%',
+      borderTopLeftRadius: tokens.radius.xl,
+      borderTopRightRadius: tokens.radius.xl,
+      paddingBottom: tokens.spacing.xl,
     },
   })
-
-  return (
-    <View style={styles.wrapper}>
-      {label ? <Text style={styles.labelText}>{label}</Text> : null}
-      <View
-        style={styles.trigger}
-        accessibilityRole="button"
-        accessibilityLabel={label ?? 'Date'}
-        onTouchEnd={() => setShow(true)}
-      >
-        <Text style={styles.triggerText}>{value || (placeholder ?? 'Select date')}</Text>
-      </View>
-      {show && DateTimePicker ? (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={(_: any, selected?: Date) => {
-            setShow(Platform.OS === 'ios')
-            if (selected) onChange(toYMD(selected))
-          }}
-        />
-      ) : null}
-    </View>
-  )
-}
-
-// ── Exported component: picks the right implementation ────────────────────────
-
-export function DatePickerField(props: DatePickerFieldProps) {
-  if (Platform.OS === 'web') return <DatePickerWeb {...props} />
-  if (DateTimePicker !== null) return <DatePickerNative {...props} />
-  return <DatePickerTextFallback {...props} />
 }
