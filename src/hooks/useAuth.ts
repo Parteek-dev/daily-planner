@@ -17,6 +17,7 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   signInAnonymously,
   deleteUser,
   linkWithCredential,
@@ -24,45 +25,11 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth'
 import { auth } from '@/src/lib/firebase'
+import { extractErrorMessage } from '@/src/lib/authErrors'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const GUEST_MODE_KEY = 'guest_mode'
-
-// ── Error code → human-readable message map ──────────────────────────────────
-
-function mapFirebaseError(code: string): string {
-  switch (code) {
-    case 'auth/user-not-found':
-      return 'No account found with this email address.'
-    case 'auth/wrong-password':
-      return 'Incorrect password. Please try again.'
-    case 'auth/invalid-credential':
-      return 'Invalid email or password. Please try again.'
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists.'
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection and try again.'
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please wait a moment and try again.'
-    case 'auth/weak-password':
-      return 'Password must be at least 6 characters.'
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.'
-    case 'auth/credential-already-in-use':
-      return 'This email is already linked to another account.'
-    default:
-      return 'An unexpected error occurred. Please try again.'
-  }
-}
-
-function extractErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'code' in err) {
-    return mapFirebaseError((err as { code: string }).code)
-  }
-  if (err instanceof Error) return err.message
-  return 'An unexpected error occurred. Please try again.'
-}
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -89,7 +56,22 @@ export function useAuth() {
         auth,
         (firebaseUser) => {
           clearTimeout(timeout)
-          setUser(firebaseUser)
+          console.log('[useAuth] onAuthStateChanged fired:', {
+            uid: firebaseUser?.uid,
+            isAnonymous: firebaseUser?.isAnonymous,
+            emailVerified: firebaseUser?.emailVerified,
+            email: firebaseUser?.email,
+          })
+          // Treat unverified email accounts as unauthenticated.
+          // Anonymous (guest) users skip this check — they have no email to verify.
+          if (firebaseUser && !firebaseUser.isAnonymous && !firebaseUser.emailVerified) {
+            console.log('[useAuth] Blocking unverified user — signing out')
+            // Sign them out silently — the signup flow already sent the verification email.
+            firebaseSignOut(auth).catch(() => { })
+            setUser(null)
+          } else {
+            setUser(firebaseUser)
+          }
           setAuthLoading(false)
         },
         (error) => {
@@ -113,12 +95,17 @@ export function useAuth() {
   // ── Sign In ─────────────────────────────────────────────────────────────────
   // Replaces: supabase.auth.signInWithPassword (Req 6.1)
   const signIn = useCallback(
-    async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    async (email: string, password: string): Promise<{ success: boolean; emailVerified?: boolean; error?: string }> => {
       try {
         console.log('[useAuth] Attempting sign in for:', email)
-        await signInWithEmailAndPassword(auth, email, password)
+        const credential = await signInWithEmailAndPassword(auth, email, password)
+        // Block access if email hasn't been verified yet
+        if (!credential.user.emailVerified) {
+          await firebaseSignOut(auth)
+          return { success: false, emailVerified: false, error: 'Please verify your email before signing in. Check your inbox for the verification link.' }
+        }
         console.log('[useAuth] Sign in successful')
-        return { success: true }
+        return { success: true, emailVerified: true }
       } catch (err) {
         console.error('[useAuth] Sign in error:', err)
         return { success: false, error: extractErrorMessage(err) }
@@ -136,8 +123,14 @@ export function useAuth() {
         if (displayName?.trim()) {
           await updateProfile(credential.user, { displayName: displayName.trim() })
         }
+        // Send verification email, then immediately sign out so the user
+        // cannot access the app until they click the link in their inbox.
+        await sendEmailVerification(credential.user)
+        await firebaseSignOut(auth)
+        console.log('[useAuth] Sign up successful, user signed out pending email verification')
         return { success: true }
       } catch (err) {
+        console.error('[useAuth] Sign up error:', err)
         return { success: false, error: extractErrorMessage(err) }
       }
     },

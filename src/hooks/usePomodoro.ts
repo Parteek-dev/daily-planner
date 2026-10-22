@@ -1,20 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import {
+  SESSIONS_BEFORE_LONG_BREAK,
+  computeNextPhase,
+  computeSkip,
+  computeProgress,
+  formatTime as formatTimeHelper,
+  type PomodoroMode,
+  type TimerAlertPayload,
+} from '@/src/lib/pomodoro'
 
 const POMODORO_KEY = 'planner_pomodoro'
 const DEFAULT_WORK_MINUTES = 25
 const DEFAULT_BREAK_MINUTES = 5
 const DEFAULT_LONG_BREAK_MINUTES = 15
-const SESSIONS_BEFORE_LONG_BREAK = 4
-
-type PomodoroMode = 'work' | 'break' | 'longBreak'
-
-interface TimerAlertPayload {
-  type: 'workDone' | 'breakDone' | 'longBreakEarned'
-  sessions: number
-  nextMode: PomodoroMode
-  nextMinutes: number
-}
 
 interface PomodoroSettings {
   workMinutes: number
@@ -116,24 +115,14 @@ export default function usePomodoro(): UsePomodoroReturn {
       // Timer completed
       setIsRunning(false)
 
-      if (mode === 'work') {
-        const newSessions = completedSessions + 1
-        setCompletedSessions(newSessions)
-
-        if (newSessions % SESSIONS_BEFORE_LONG_BREAK === 0) {
-          setMode('longBreak')
-          setTimeLeft(longBreakMinutes * 60)
-          setTimerAlert({ type: 'longBreakEarned', sessions: newSessions, nextMode: 'longBreak', nextMinutes: longBreakMinutes })
-        } else {
-          setMode('break')
-          setTimeLeft(breakMinutes * 60)
-          setTimerAlert({ type: 'workDone', sessions: newSessions, nextMode: 'break', nextMinutes: breakMinutes })
-        }
-      } else {
-        setMode('work')
-        setTimeLeft(workMinutes * 60)
-        setTimerAlert({ type: 'breakDone', sessions: completedSessions, nextMode: 'work', nextMinutes: workMinutes })
-      }
+      const next = computeNextPhase(
+        { mode, completedSessions },
+        { workMinutes, breakMinutes, longBreakMinutes },
+      )
+      setCompletedSessions(next.completedSessions)
+      setMode(next.mode)
+      setTimeLeft(next.timeLeft)
+      setTimerAlert(next.timerAlert)
     }
 
     return () => {
@@ -143,13 +132,32 @@ export default function usePomodoro(): UsePomodoroReturn {
     }
   }, [isRunning, timeLeft, mode, completedSessions, workMinutes, breakMinutes, longBreakMinutes])
 
-  // Update time when settings change (if not running)
+  // Update time when settings change (only if not running and time hasn't started)
+  // We use refs to track the previous settings values to detect actual changes
+  const prevWorkMinutesRef = useRef(workMinutes)
+  const prevBreakMinutesRef = useRef(breakMinutes)
+  const prevLongBreakMinutesRef = useRef(longBreakMinutes)
+
   useEffect(() => {
+    // Only reset time if settings actually changed (not just isRunning toggled)
+    const workChanged = prevWorkMinutesRef.current !== workMinutes
+    const breakChanged = prevBreakMinutesRef.current !== breakMinutes
+    const longBreakChanged = prevLongBreakMinutesRef.current !== longBreakMinutes
+
     if (!isRunning) {
-      if (mode === 'work') setTimeLeft(workMinutes * 60)
-      else if (mode === 'break') setTimeLeft(breakMinutes * 60)
-      else setTimeLeft(longBreakMinutes * 60)
+      if (mode === 'work' && workChanged) {
+        setTimeLeft(workMinutes * 60)
+      } else if (mode === 'break' && breakChanged) {
+        setTimeLeft(breakMinutes * 60)
+      } else if (mode === 'longBreak' && longBreakChanged) {
+        setTimeLeft(longBreakMinutes * 60)
+      }
     }
+
+    // Update refs
+    prevWorkMinutesRef.current = workMinutes
+    prevBreakMinutesRef.current = breakMinutes
+    prevLongBreakMinutesRef.current = longBreakMinutes
   }, [workMinutes, breakMinutes, longBreakMinutes, mode, isRunning])
 
   const dismissTimerAlert = useCallback(() => setTimerAlert(null), [])
@@ -171,30 +179,14 @@ export default function usePomodoro(): UsePomodoroReturn {
 
   const skipToNext = useCallback(() => {
     setIsRunning(false)
-    if (mode === 'work') {
-      setMode('break')
-      setTimeLeft(breakMinutes * 60)
-    } else {
-      setMode('work')
-      setTimeLeft(workMinutes * 60)
-    }
-  }, [mode, breakMinutes, workMinutes])
+    const next = computeSkip(mode, { workMinutes, breakMinutes, longBreakMinutes })
+    setMode(next.mode)
+    setTimeLeft(next.timeLeft)
+  }, [mode, breakMinutes, workMinutes, longBreakMinutes])
 
-  const formatTime = useCallback((seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }, [])
+  const formatTime = useCallback((seconds: number): string => formatTimeHelper(seconds), [])
 
-  let totalSeconds: number
-  if (mode === 'work') {
-    totalSeconds = workMinutes * 60
-  } else if (mode === 'break') {
-    totalSeconds = breakMinutes * 60
-  } else {
-    totalSeconds = longBreakMinutes * 60
-  }
-  const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100
+  const progress = computeProgress(mode, timeLeft, { workMinutes, breakMinutes, longBreakMinutes })
 
   return {
     mode,
