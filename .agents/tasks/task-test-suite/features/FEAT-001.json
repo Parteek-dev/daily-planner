@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-001",
+  "type": "test",
+  "description": "Pure-function test coverage for the dependency-free / lib-level code that has gaps today: src/utils/index.ts (clamp, isHexColor — no test at all), the directly-untested datetime.ts primitives (parseYMD, toYMD, parseHHMM, toHHMM, monthName), and the Firestore mappers not yet covered (Topic/Note/Goals/Template round-trips, empty-snapshot defaults, tsToIso null/Timestamp/Date/ISO handling, docToTask defaults). No production code changes — tests only. Independent of FEAT-002. Do NOT duplicate the already-covered fmtDuration/parseDuration, to12h/to24h/formatTime12h/formatDateDisplay/buildMonthGrid/durationBetween/isValidSameDayRange/isValidHHMM, or the Task round-trip.",
+  "status": "completed",
+  "steps": [
+    "Create src/utils/__tests__/index.test.ts testing clamp and isHexColor from '@/src/utils'. clamp: within range, clamps to min, clamps to max, min===max, negative ranges; plus a fast-check property that clamp(x,min,max) is always within [min,max] for min<=max. isHexColor: accepts #rrggbb upper and lower case, rejects 3-digit (#fff), missing #, wrong length, non-hex chars (#gggggg), and empty string.",
+    "Create src/lib/__tests__/datetimePrimitives.test.ts importing parseYMD, toYMD, parseHHMM, toHHMM, monthName from '@/src/lib/datetime'. parseYMD: valid date, malformed ('2025-1-1','abc',''), overflow ('2025-02-30' -> null), leap day ('2024-02-29' valid, '2025-02-29' null). toYMD: zero-pads month/day. Property: parseYMD->toYMD round-trip for dates across 2000-2035. parseHHMM: '23:59' ok, '24:00' null, '12:60' null, '9:30' (single digit) null, 'xx' null. toHHMM: pads hours/minutes. monthName: 0 -> 'January', 11 -> 'December', -1 and 12 -> ''.",
+    "Create src/lib/__tests__/firestoreMappersExtra.test.ts. Reuse the makeSnap(id, data) helper pattern from the existing firestoreMappers.test.ts. Cover: Topic/Note/Goals/Template round-trip field equality via docTo*(makeSnap(id, *ToDoc(obj, uid))); empty-snapshot defaults (docToTopic color '#64748b'; docToTemplate duration 30, topic 'Personal', priority null, recurrence 'none'; docToGoals primaryGoal 3 and extraGoals []); docToNote date falls back to snap.id when the date field is absent; docToTask on an empty snapshot yields title '', topic 'Personal', duration 30, completedAt null, and a createdAt that is a valid ISO string. Exercise tsToIso indirectly through completedAt/createdAt/updatedAt by passing a firebase Timestamp (Timestamp.fromDate), a plain Date, an ISO string, and null (null -> '' for note createdAt path where applicable)."
+  ],
+  "acceptance_criteria": [
+    "Running `npx vitest --run src/utils` passes the new clamp/isHexColor tests.",
+    "Running `npx vitest --run src/lib/__tests__/datetimePrimitives.test.ts` passes.",
+    "Running `npx vitest --run src/lib/__tests__/firestoreMappersExtra.test.ts` passes.",
+    "`npx vitest --run` full suite is green (exit code 0) with the new files included and no pre-existing test modified."
+  ],
+  "verification": [
+    "npx vitest --run src/utils src/lib/__tests__/datetimePrimitives.test.ts src/lib/__tests__/firestoreMappersExtra.test.ts",
+    "npx vitest --run"
+  ],
+  "blocked_reason": null,
+  "findings": "Added 3 tests-only files (40 new tests), no production source changed. Full suite now 8 files / 80 tests, exit 0 (baseline was 5 files / 40). New files: src/utils/__tests__/index.test.ts (clamp + isHexColor, incl. fast-check property), src/lib/__tests__/datetimePrimitives.test.ts (parseYMD/toYMD/parseHHMM/toHHMM/monthName + round-trip property), src/lib/__tests__/firestoreMappersExtra.test.ts (Topic/Note/Goals/Template round-trips, empty-snapshot defaults, docToNote id fallback, docToTask defaults, tsToIso via Timestamp/Date/ISO/null). Gotchas: (1) parseHHMM uses /^\\d{2}:\\d{2}$/ so single-digit hours like '9:30' return null (regex failure, not range). (2) docToNote/docToGoals/docToTemplate use new Date().toISOString() as the createdAt/updatedAt fallback, NOT ''; tsToIso only returns '' for a falsy value, and the docTo* functions guard with truthiness so null never reaches tsToIso's '' branch — exercised tsToIso's branches directly through docToTask's completed_at field (Timestamp/Date/ISO/null). (3) emptySnap helper (data()->undefined) relies on the `?? {}` guard in each mapper. (4) Reused the makeSnap(id, data) pattern from the existing firestoreMappers.test.ts. Harmless Vite CJS/ESM config warning prints to stderr on every run; not a failure."
+}
