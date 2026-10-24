@@ -178,6 +178,26 @@ vi.mock('expo-linking', async () => {
   return m.expoLinkingFactory()
 })
 
+// expo-modules-core: real module touches globalThis.expo (native). Stub the
+// surface consumed by components (PermissionStatus enum + EventEmitter).
+vi.mock('expo-modules-core', () => ({
+  PermissionStatus: {
+    GRANTED: 'granted',
+    DENIED: 'denied',
+    UNDETERMINED: 'undetermined',
+  },
+  EventEmitter: class {
+    addListener() {
+      return { remove() { } }
+    }
+    removeAllListeners() { }
+    emit() { }
+  },
+  NativeModulesProxy: {},
+  requireNativeModule: () => ({}),
+  requireOptionalNativeModule: () => null,
+}))
+
 // ── per-test reset ──────────────────────────────────────────────────────────
 
 afterEach(() => {

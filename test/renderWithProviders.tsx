@@ -3,7 +3,10 @@
  * usage, theme state, and context behavior are exercised (never mock useTheme).
  *
  * Two tiers:
- *   - ThemeOnly (default): leaf primitives and prop-driven components.
+ *   - ThemeOnly (default): leaf primitives and prop-driven components. Includes
+ *     ThemeProvider + AccessibilityProvider (the latter is a lightweight
+ *     root-level provider that several leaf components consume via
+ *     useAccessibility, which throws outside it).
  *   - AllProviders (withContexts: true): components that call a context hook
  *     which throws outside its provider (useAddTaskModal / useSettingsModal /
  *     usePomodoroModal / usePomodoroMini).
@@ -11,6 +14,7 @@
 import React, { type ReactElement, type ReactNode } from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { ThemeProvider } from '@/src/hooks/useTheme'
+import { AccessibilityProvider } from '@/src/hooks/useAccessibility'
 import { AddTaskModalProvider } from '@/src/context/AddTaskModalContext'
 import { SettingsModalProvider } from '@/src/context/SettingsModalContext'
 import { PomodoroModalProvider } from '@/src/context/PomodoroModalContext'
@@ -27,23 +31,29 @@ function AllProviders({ children }: { children: ReactNode }) {
   // PomodoroMiniProvider consumes usePomodoro (timers); tests that mount it use fake timers.
   return (
     <ThemeProvider>
-      <MobileHeaderProvider>
-        <AddTaskModalProvider>
-          <SettingsModalProvider>
-            <PomodoroModalProvider>
-              <PomodoroMiniProvider>
-                <WidgetProvider>{children}</WidgetProvider>
-              </PomodoroMiniProvider>
-            </PomodoroModalProvider>
-          </SettingsModalProvider>
-        </AddTaskModalProvider>
-      </MobileHeaderProvider>
+      <AccessibilityProvider>
+        <MobileHeaderProvider>
+          <AddTaskModalProvider>
+            <SettingsModalProvider>
+              <PomodoroModalProvider>
+                <PomodoroMiniProvider>
+                  <WidgetProvider>{children}</WidgetProvider>
+                </PomodoroMiniProvider>
+              </PomodoroModalProvider>
+            </SettingsModalProvider>
+          </AddTaskModalProvider>
+        </MobileHeaderProvider>
+      </AccessibilityProvider>
     </ThemeProvider>
   )
 }
 
 function ThemeOnly({ children }: { children: ReactNode }) {
-  return <ThemeProvider>{children}</ThemeProvider>
+  return (
+    <ThemeProvider>
+      <AccessibilityProvider>{children}</AccessibilityProvider>
+    </ThemeProvider>
+  )
 }
 
 export function renderWithProviders(
