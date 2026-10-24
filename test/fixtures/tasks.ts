@@ -69,3 +69,34 @@ export const sampleGoalsDoc: Record<string, unknown> = {
   daily_task_target: 5,
   extra_goals: [{ id: 'g1', type: 'min_tasks', value: 3 }],
 }
+
+// ── Mapped Task objects (camelCase) for prop-driven component tests ─────────
+
+import type { Task } from '@/src/lib/firestoreMappers'
+
+/** Builds a fully-populated mapped `Task`, overridable per test. */
+export function makeTask(overrides: Partial<Task> = {}): Task {
+  return {
+    id: 'task-1',
+    title: 'Write design doc',
+    description: '',
+    topic: 'Work',
+    duration: 60,
+    actualDuration: null,
+    date: '2025-01-15',
+    originalDate: null,
+    dueTime: '09:00',
+    completed: false,
+    completedAt: null,
+    createdAt: '2025-01-15T08:00:00.000Z',
+    note: '',
+    priority: 'high',
+    dependsOn: [],
+    subtasks: [],
+    recurrence: 'none',
+    recurrenceEndDate: null,
+    recurrenceParentId: null,
+    customRecurrenceDays: null,
+    ...overrides,
+  }
+}
