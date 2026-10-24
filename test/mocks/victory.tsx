@@ -41,6 +41,31 @@ export function VictoryBar({
   return <View {...(viewProps as ViewProps)} />
 }
 
+export function VictoryPie({ children, ...props }: ChartProps) {
+  return <View testID="victory-pie" {...(props as ViewProps)}>{children}</View>
+}
+
+export function VictoryLine({ children, ...props }: ChartProps) {
+  return <View {...(props as ViewProps)}>{children}</View>
+}
+
+export function VictoryArea({ children, ...props }: ChartProps) {
+  return <View {...(props as ViewProps)}>{children}</View>
+}
+
+export function VictoryScatter({ children, ...props }: ChartProps) {
+  return <View {...(props as ViewProps)}>{children}</View>
+}
+
 export const VictoryTheme = { material: {} }
 
-export default { VictoryChart, VictoryAxis, VictoryBar, VictoryTheme }
+export default {
+  VictoryChart,
+  VictoryAxis,
+  VictoryBar,
+  VictoryPie,
+  VictoryLine,
+  VictoryArea,
+  VictoryScatter,
+  VictoryTheme,
+}
