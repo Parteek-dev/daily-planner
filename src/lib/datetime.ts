@@ -13,14 +13,14 @@
 
 export type Period = 'AM' | 'PM'
 
-/** A single cell in the month grid. */
+/** A single cell in the fixed 42-cell month grid. */
 export interface MonthCell {
   /** YYYY-MM-DD for this cell. */
   ymd: string
-  /** Day-of-month number (1-31). */
-  day: number
   /** False for leading/trailing days that belong to adjacent months. */
-  inMonth: boolean
+  inCurrentMonth: boolean
+  /** True when this cell is the real current date. */
+  isToday: boolean
 }
 
 // ─── Date (YYYY-MM-DD) ─────────────────────────────────────────────────────────
@@ -129,41 +129,59 @@ export function formatDateDisplay(ymd: string): string {
   return `${MONTHS_SHORT[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
 }
 
+// ─── Range duration (same-day) ─────────────────────────────────────────────────
+
+/**
+ * Minutes between two same-day HH:MM (24h) times, or null when the range is
+ * invalid (malformed input, or end not strictly after start). Same-day only —
+ * crossing midnight is never allowed.
+ */
+export function durationBetween(startHHMM: string | null, endHHMM: string | null): number | null {
+  if (startHHMM === null || endHHMM === null) return null
+  if (!isValidHHMM(startHHMM) || !isValidHHMM(endHHMM)) return null
+  const [sh, sm] = startHHMM.split(':').map(Number)
+  const [eh, em] = endHHMM.split(':').map(Number)
+  const startMin = sh * 60 + sm
+  const endMin = eh * 60 + em
+  if (endMin <= startMin) return null
+  return endMin - startMin
+}
+
+/** True when end is a valid HH:MM strictly after a valid start on the same day. */
+export function isValidSameDayRange(startHHMM: string | null, endHHMM: string | null): boolean {
+  return durationBetween(startHHMM, endHHMM) !== null
+}
+
 // ─── Month grid ────────────────────────────────────────────────────────────────
 
 /**
- * Build a month grid as weeks × 7 cells, week starting Sunday.
- * Leading/trailing days from adjacent months are flagged `inMonth: false`.
+ * Build a FIXED 42-cell month grid (6 rows × 7 cols, week starting Sunday).
+ * The length is always 42 so the calendar height never changes between months.
+ * Leading/trailing days from adjacent months are flagged `inCurrentMonth: false`;
+ * `isToday` is computed against the real current date.
  */
-export function buildMonthGrid(year: number, monthIndex0: number): MonthCell[][] {
+export function buildMonthGrid(year: number, monthIndex0: number): MonthCell[] {
+  const todayYMD = toYMD(new Date())
+
   const firstOfMonth = new Date(year, monthIndex0, 1)
   const startWeekday = firstOfMonth.getDay() // 0 = Sunday
 
   // Start from the Sunday on or before the 1st.
   const gridStart = new Date(year, monthIndex0, 1 - startWeekday)
 
-  const weeks: MonthCell[][] = []
+  const cells: MonthCell[] = []
   const cursor = new Date(gridStart)
 
-  // Always render 6 weeks so the grid height is stable, then trim trailing
-  // weeks that are entirely out of month.
-  for (let week = 0; week < 6; week++) {
-    const row: MonthCell[] = []
-    for (let d = 0; d < 7; d++) {
-      row.push({
-        ymd: toYMD(cursor),
-        day: cursor.getDate(),
-        inMonth: cursor.getMonth() === monthIndex0,
-      })
-      cursor.setDate(cursor.getDate() + 1)
-    }
-    weeks.push(row)
+  // Always render exactly 6 weeks (42 cells) — no trimming.
+  for (let i = 0; i < 42; i++) {
+    const ymd = toYMD(cursor)
+    cells.push({
+      ymd,
+      inCurrentMonth: cursor.getMonth() === monthIndex0,
+      isToday: ymd === todayYMD,
+    })
+    cursor.setDate(cursor.getDate() + 1)
   }
 
-  // Drop a trailing week only if none of its cells are in the month.
-  while (weeks.length > 4 && weeks[weeks.length - 1].every((c) => !c.inMonth)) {
-    weeks.pop()
-  }
-
-  return weeks
+  return cells
 }

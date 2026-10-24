@@ -27,7 +27,7 @@ import {
   ArrowRight, Sparkles, Zap, ClipboardList, Sun, Moon, SunMoon,
   ListTodo, TrendingUp,
 } from 'lucide-react-native'
-import { useTheme } from '@/src/hooks/useTheme'
+import { useTheme, type ThemeMode } from '@/src/hooks/useTheme'
 import { useAuth } from '@/src/hooks/useAuth'
 
 // ── Shared data ───────────────────────────────────────────────────────────────
@@ -129,6 +129,177 @@ function HoverCard({ style, hoverBorderColor, children }: { style: any; hoverBor
     >
       {children}
     </Animated.View>
+  )
+}
+
+// ── Glass Effect Utility ──────────────────────────────────────────────────────
+
+/**
+ * Creates glass/frosted effect styles for web.
+ * Used by navbar and theme dropdown for consistent transparent styling.
+ */
+function getGlassStyle(isDark: boolean) {
+  return {
+    colors: {
+      background: isDark ? 'rgba(15,23,42,0.15)' : 'rgba(180,195,255,0.35)',
+      border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(99,102,241,0.18)',
+    },
+    webEffects: Platform.select({
+      web: {
+        backdropFilter: 'blur(80px) saturate(240%) brightness(1.15)',
+        WebkitBackdropFilter: 'blur(80px) saturate(240%) brightness(1.15)',
+        boxShadow: isDark
+          ? '0 8px 32px rgba(0,0,0,0.4)'
+          : '0 8px 32px rgba(99,102,241,0.12)',
+      } as any,
+    }),
+  }
+}
+
+// ── Theme Dropdown (web only) ─────────────────────────────────────────────────
+
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { mode: 'light', label: 'Light', icon: Sun },
+  { mode: 'dark', label: 'Dark', icon: Moon },
+  { mode: 'auto', label: 'Auto', icon: SunMoon },
+]
+
+function ThemeDropdown({
+  themeMode,
+  setThemeMode,
+  tokens,
+  isDark,
+}: {
+  themeMode: string
+  setThemeMode: (mode: ThemeMode) => void
+  tokens: ReturnType<typeof useTheme>['tokens']
+  isDark: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<View>(null)
+
+  // Close dropdown when clicking outside (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !open) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      // @ts-ignore - web DOM access
+      if (dropdownRef.current && !dropdownRef.current.contains?.(e.target)) {
+        setOpen(false)
+      }
+    }
+
+    // Small delay to avoid immediate close on the same click
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  const CurrentIcon = themeMode === 'dark' ? Moon : themeMode === 'light' ? Sun : SunMoon
+
+  const btnBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const btnBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(99,102,241,0.18)'
+  // Use shared glass effect utility
+  const glassStyle = getGlassStyle(isDark)
+  const hoverBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.12)'
+  const activeBg = isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.15)'
+
+  return (
+    <View ref={dropdownRef} style={{ position: 'relative', zIndex: 1000 }}>
+      <Pressable
+        onPress={() => setOpen(!open)}
+        style={({ pressed }) => [
+          {
+            padding: 7,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: btnBorder,
+            backgroundColor: btnBg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          pressed && { opacity: 0.7 },
+        ]}
+        accessibilityLabel="Theme options"
+        accessibilityRole="button"
+      >
+        <CurrentIcon size={15} color={tokens.textSecondary} />
+      </Pressable>
+
+      {open && (
+        <View
+          style={[
+            {
+              position: 'absolute',
+              top: 40,
+              right: 0,
+              minWidth: 140,
+              backgroundColor: glassStyle.colors.background,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: glassStyle.colors.border,
+              paddingVertical: 6,
+              zIndex: 1001,
+            },
+            glassStyle.webEffects,
+          ]}
+        >
+          {THEME_OPTIONS.map(({ mode, label, icon: Icon }) => {
+            const isActive = themeMode === mode
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => {
+                  setThemeMode(mode)
+                  setOpen(false)
+                }}
+                style={({ pressed, hovered }) => [
+                  {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    marginHorizontal: 6,
+                    borderRadius: 8,
+                    backgroundColor: isActive
+                      ? activeBg
+                      : (hovered ? hoverBg : 'transparent'),
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+                accessibilityRole="menuitem"
+                accessibilityLabel={label}
+              >
+                <Icon
+                  size={16}
+                  color={isActive ? tokens.accentPrimary : tokens.textSecondary}
+                />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: isActive ? '600' : '400',
+                    color: isActive ? tokens.accentPrimary : tokens.textPrimary,
+                  }}
+                >
+                  {label}
+                </Text>
+                {isActive && (
+                  <View style={{ marginLeft: 'auto' }}>
+                    <CheckCircle2 size={14} color={tokens.accentPrimary} />
+                  </View>
+                )}
+              </Pressable>
+            )
+          })}
+        </View>
+      )}
+    </View>
   )
 }
 
@@ -362,7 +533,8 @@ function WebLanding({
   guestError,
   tokens,
   themeMode,
-  toggleTheme,
+  setThemeMode,
+  theme,
   width,
 }: {
   onGetStarted: () => void
@@ -373,26 +545,52 @@ function WebLanding({
   guestError: string | null
   tokens: ReturnType<typeof useTheme>['tokens']
   themeMode: string
-  toggleTheme: () => void
+  setThemeMode: (mode: ThemeMode) => void
+  theme: 'dark' | 'light'
   width: number
 }) {
   const isMobile = width < 640
-  const s = makeWebStyles(tokens, width, themeMode === 'dark')
+  const isDark = theme === 'dark'
+  const s = makeWebStyles(tokens, width, isDark)
+
+  // Use shared glass effect utility
+  const glassStyle = getGlassStyle(isDark)
 
   return (
     <View style={s.root}>
       {/* ── Fixed Navbar ── */}
-      <View style={s.navbar}>
+      <View
+        style={[
+          {
+            position: 'absolute' as any,
+            top: 12,
+            left: 12,
+            right: 12,
+            zIndex: 100,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: 52,
+            paddingHorizontal: 16,
+            borderRadius: 20,
+            backgroundColor: glassStyle.colors.background,
+            borderWidth: 1,
+            borderColor: glassStyle.colors.border,
+          },
+          glassStyle.webEffects,
+        ]}
+      >
         <View style={s.navLogo}>
           <View style={s.navLogoBox}><ClipboardList size={17} color="#fff" /></View>
           <Text style={s.navLogoText}>Daily Planner</Text>
         </View>
         <View style={s.navRight}>
-          <Pressable onPress={toggleTheme} style={({ pressed }) => [s.navThemeBtn, pressed && { opacity: 0.7 }]} accessibilityLabel="Toggle theme">
-            {themeMode === 'dark' ? <Moon size={15} color={tokens.textSecondary} />
-              : themeMode === 'light' ? <Sun size={15} color={tokens.textSecondary} />
-                : <SunMoon size={15} color={tokens.textSecondary} />}
-          </Pressable>
+          <ThemeDropdown
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
+            tokens={tokens}
+            isDark={isDark}
+          />
           {!isMobile && (
             <Pressable onPress={onFeedback} style={({ pressed }) => [s.navGhostBtn, pressed && { opacity: 0.7 }]}>
               <Text style={s.navGhostText}>Feedback</Text>
@@ -539,7 +737,7 @@ function WebLanding({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LandingScreen() {
-  const { tokens, themeMode, toggleTheme } = useTheme()
+  const { tokens, theme, themeMode, toggleTheme, setThemeMode } = useTheme()
   const { enterGuestMode } = useAuth()
   const router = useRouter()
   const { width } = useWindowDimensions()
@@ -587,7 +785,8 @@ export default function LandingScreen() {
       guestError={guestError}
       tokens={tokens}
       themeMode={themeMode}
-      toggleTheme={toggleTheme}
+      setThemeMode={setThemeMode}
+      theme={theme}
       width={width}
     />
   )
@@ -751,22 +950,8 @@ function makeWebStyles(tokens: ReturnType<typeof useTheme>['tokens'], width: num
       ...({ backgroundImage: `linear-gradient(135deg, ${tokens.bgPrimary} 0%, ${tokens.bgSecondary} 50%, ${tokens.bgPrimary} 100%)` } as any),
     },
     navbar: {
-      position: 'absolute' as any,
-      top: 12, left: 12, right: 12, zIndex: 100,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      height: 52, paddingHorizontal: 16,
-      borderRadius: 20,
-      // Legacy liquid-glass: fully transparent bg + strong backdrop blur
-      backgroundColor: isDark ? 'rgba(15,23,42,0.15)' : 'rgba(180,195,255,0.35)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(99,102,241,0.18)',
-      ...({
-        backdropFilter: 'blur(80px) saturate(240%) brightness(1.15)',
-        WebkitBackdropFilter: 'blur(80px) saturate(240%) brightness(1.15)',
-        boxShadow: isDark
-          ? '0 2px 16px rgba(0,0,0,0.3)'
-          : '0 2px 16px rgba(99,102,241,0.08)',
-      } as any),
+      // NOTE: Navbar now uses inline styles for glass effect - see WebLanding component
+      // This style is kept for reference but not actively used
     },
     navLogo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     navLogoBox: {

@@ -137,14 +137,19 @@ function AuthGate() {
     // Wait until Firebase Auth has resolved the initial session
     if (authLoading) return
 
+    // An unverified non-anonymous user is treated as unauthenticated.
+    // The onAuthStateChanged listener already signs them out, but we guard
+    // here too in case of any timing gap between the sign-out and state update.
+    const isAuthenticated = user !== null && (user.isAnonymous || user.emailVerified)
+
     const inAuthGroup = segments[0] === '(tabs)'
     const onLanding = segments[0] === undefined
     const onAuth = segments[0] === 'auth'
 
-    if (!user && inAuthGroup) {
+    if (!isAuthenticated && inAuthGroup) {
       // Session ended while on an authenticated route → send to sign-in
       router.replace('/auth')
-    } else if (user && (onLanding || onAuth)) {
+    } else if (isAuthenticated && (onLanding || onAuth)) {
       // Session exists but still on public route → send to main app
       router.replace('/(tabs)')
     }

@@ -34,8 +34,6 @@ import {
   Clock,
   Check,
   Timer,
-  List,
-  CalendarDays,
 } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
 
@@ -45,8 +43,6 @@ import { useTheme } from '@/src/hooks/useTheme'
 import { useMotion } from '@/src/hooks/useMotion'
 import { useAddTaskModal } from '@/src/context/AddTaskModalContext'
 import { UnifiedTaskItem } from '@/src/components/task/UnifiedTaskItem'
-import { DayTimeline } from '@/src/components/task/DayTimeline'
-import { CrossfadeView } from '@/src/components/motion'
 
 const SIDEBAR_BREAKPOINT = 768
 
@@ -122,7 +118,6 @@ export default function HomeScreen() {
   const motion = useMotion()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('week')
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
-  const [scheduleViewMode, setScheduleViewMode] = useState<'list' | 'timeline'>('list')
 
   const isMobile = !(Platform.OS === 'web' && width > SIDEBAR_BREAKPOINT)
 
@@ -248,7 +243,7 @@ export default function HomeScreen() {
       subLabel: `Best: ${streakData.best} days`,
       icon: Flame,
       iconColor: streakData.current > 0 ? '#f97316' : tokens.textMuted,
-      bgTint: streakData.current > 0 ? 'rgba(249, 115, 22, 0.12)' : tokens.bgInput,
+      bgTint: streakData.current > 0 ? 'rgba(249, 115, 22, 0.12)' : `${tokens.textMuted}14`,
     },
     {
       key: 'timeInvested',
@@ -397,42 +392,15 @@ export default function HomeScreen() {
           } as any]}>
             <View style={s.cardHeader}>
               <Text style={[s.cardTitle, { color: tokens.textPrimary }]}>Today's Schedule</Text>
-              <View style={s.cardActions}>
-                {/* View toggle */}
-                <View style={[s.viewToggle, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderPrimary }]}>
-                  <Pressable
-                    onPress={() => setScheduleViewMode('list')}
-                    style={[
-                      s.viewToggleBtn,
-                      scheduleViewMode === 'list' && { backgroundColor: tokens.bgPrimary },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="List view"
-                  >
-                    <List size={12} color={scheduleViewMode === 'list' ? tokens.accentPrimary : tokens.textMuted} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setScheduleViewMode('timeline')}
-                    style={[
-                      s.viewToggleBtn,
-                      scheduleViewMode === 'timeline' && { backgroundColor: tokens.bgPrimary },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="Timeline view"
-                  >
-                    <CalendarDays size={12} color={scheduleViewMode === 'timeline' ? tokens.accentPrimary : tokens.textMuted} />
-                  </Pressable>
-                </View>
-                <Pressable
-                  onPress={() => router.push('/(tabs)/today')}
-                  style={({ pressed }) => [s.seeAllBtn, pressed && { opacity: 0.7 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel="See all tasks"
-                >
-                  <Text style={[s.seeAllText, { color: tokens.textMuted }]}>See all</Text>
-                  <ChevronRight size={14} color={tokens.textMuted} />
-                </Pressable>
-              </View>
+              <Pressable
+                onPress={() => router.push('/(tabs)/today')}
+                style={({ pressed }) => [s.seeAllBtn, pressed && { opacity: 0.7 }]}
+                accessibilityRole="button"
+                accessibilityLabel="See all tasks"
+              >
+                <Text style={[s.seeAllText, { color: tokens.textMuted }]}>See all</Text>
+                <ChevronRight size={14} color={tokens.textMuted} />
+              </Pressable>
             </View>
 
             {todayTasks.length === 0 ? (
@@ -454,36 +422,20 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             ) : (
-              <CrossfadeView viewKey={scheduleViewMode} duration="fast">
-                {scheduleViewMode === 'timeline' ? (
-                  <View style={s.timelineContainer}>
-                    <DayTimeline
-                      tasks={todayTasks}
-                      onToggle={() => { }}
-                      onPress={(id) => openAddTask({ editTaskId: id })}
-                      getTopicColor={getTopicColor}
-                      hourHeight={72}
-                      compact
-                      hideUnscheduled
-                    />
-                  </View>
-                ) : (
-                  <View style={s.scheduleList}>
-                    {todaySchedule.map((task, idx) => (
-                      <UnifiedTaskItem
-                        key={task.id}
-                        task={task}
-                        onToggle={() => {/* toggle handled in today screen */ }}
-                        onPress={() => openAddTask({ editTaskId: task.id })}
-                        getTopicColor={getTopicColor}
-                        showActions={false}
-                        compact
-                        showSeparator={idx < todaySchedule.length - 1}
-                      />
-                    ))}
-                  </View>
-                )}
-              </CrossfadeView>
+              <View style={s.scheduleList}>
+                {todaySchedule.map((task, idx) => (
+                  <UnifiedTaskItem
+                    key={task.id}
+                    task={task}
+                    onToggle={() => {/* toggle handled in today screen */ }}
+                    onPress={() => openAddTask({ editTaskId: task.id })}
+                    getTopicColor={getTopicColor}
+                    showActions={false}
+                    compact
+                    showSeparator={idx < todaySchedule.length - 1}
+                  />
+                ))}
+              </View>
             )}
           </View>
 
@@ -666,21 +618,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 2,
-  },
-  viewToggleBtn: {
-    padding: 5,
-    borderRadius: 6,
-  },
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,10 +662,6 @@ const s = StyleSheet.create({
   // Schedule list
   scheduleList: {
     gap: 0,
-  },
-  timelineContainer: {
-    height: 400,
-    marginHorizontal: -8,
   },
   scheduleItem: {
     flexDirection: 'row',

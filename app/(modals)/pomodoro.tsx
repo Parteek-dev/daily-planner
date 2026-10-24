@@ -26,7 +26,7 @@ import {
   PanResponder,
   Modal,
 } from 'react-native'
-import Svg, { Circle } from 'react-native-svg'
+import Svg, { Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Audio } from 'expo-av'
 import {
@@ -335,8 +335,8 @@ export default function PomodoroModal() {
 
 
   // SVG ring
-  const RING = 180
-  const RADIUS = 76
+  const RING = 220
+  const RADIUS = 90
   const CIRC = 2 * Math.PI * RADIUS
   const offset = CIRC - (progress / 100) * CIRC
 
@@ -488,40 +488,130 @@ export default function PomodoroModal() {
             {/* ── Circular ring + time ── */}
             <View style={s.ringWrapper}>
               <Svg width={RING} height={RING}>
-                {/* Background */}
+                {/* Gradient definition */}
+                <Defs>
+                  <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#a855f7" />
+                    <Stop offset="100%" stopColor="#3b82f6" />
+                  </LinearGradient>
+                </Defs>
+
+                {/* Background track */}
                 <Circle
                   cx={RING / 2}
                   cy={RING / 2}
                   r={RADIUS}
                   fill="none"
                   stroke={tokens.bgInput}
-                  strokeWidth={9}
+                  strokeWidth={10}
                 />
-                {/* Progress */}
+
+                {/* Tick marks */}
+                {Array.from({ length: 60 }).map((_, i) => {
+                  const angle = (i * 6 - 90) * (Math.PI / 180)
+                  const isMajor = i % 15 === 0
+                  const innerR = isMajor ? RADIUS - 18 : RADIUS - 12
+                  const outerR = RADIUS - 6
+                  const x1 = RING / 2 + innerR * Math.cos(angle)
+                  const y1 = RING / 2 + innerR * Math.sin(angle)
+                  const x2 = RING / 2 + outerR * Math.cos(angle)
+                  const y2 = RING / 2 + outerR * Math.sin(angle)
+                  return (
+                    <Line
+                      key={i}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={isMajor ? tokens.textMuted : tokens.borderPrimary}
+                      strokeWidth={isMajor ? 2 : 1}
+                    />
+                  )
+                })}
+
+                {/* Minute labels at 15, 30, 45, 60 */}
+                {[
+                  { min: 60, angle: -90 },
+                  { min: 15, angle: 0 },
+                  { min: 30, angle: 90 },
+                  { min: 45, angle: 180 },
+                ].map(({ min, angle }) => {
+                  const rad = (angle) * (Math.PI / 180)
+                  const labelR = RADIUS - 28
+                  const x = RING / 2 + labelR * Math.cos(rad)
+                  const y = RING / 2 + labelR * Math.sin(rad) + 4
+                  return (
+                    <SvgText
+                      key={min}
+                      x={x}
+                      y={y}
+                      fontSize={11}
+                      fontWeight="500"
+                      fill={tokens.textMuted}
+                      textAnchor="middle"
+                    >
+                      {min}
+                    </SvgText>
+                  )
+                })}
+
+                {/* Progress arc with gradient */}
                 <Circle
                   cx={RING / 2}
                   cy={RING / 2}
                   r={RADIUS}
                   fill="none"
-                  stroke={modeColor}
-                  strokeWidth={9}
+                  stroke="url(#progressGradient)"
+                  strokeWidth={10}
                   strokeLinecap="round"
                   strokeDasharray={`${CIRC}`}
                   strokeDashoffset={offset}
                   transform={`rotate(-90, ${RING / 2}, ${RING / 2})`}
                 />
+
+                {/* Progress indicator dot */}
+                {progress > 0 && (() => {
+                  const progressAngle = ((progress / 100) * 360 - 90) * (Math.PI / 180)
+                  const dotX = RING / 2 + RADIUS * Math.cos(progressAngle)
+                  const dotY = RING / 2 + RADIUS * Math.sin(progressAngle)
+                  return (
+                    <Circle
+                      cx={dotX}
+                      cy={dotY}
+                      r={6}
+                      fill="#3b82f6"
+                    />
+                  )
+                })()}
               </Svg>
+
               {/* Time in center */}
               <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
                 <View style={s.ringCenter}>
-                  <Text
-                    style={[s.timeDisplay, { color: tokens.textPrimary }]}
-                    accessibilityLiveRegion="polite"
-                    accessibilityLabel={`${formattedTime} remaining`}
-                  >
-                    {formattedTime}
+                  <Text style={[s.timeDisplayLarge, { color: tokens.textPrimary }]}>
+                    {Math.floor(timeLeft / 60).toString().padStart(2, '0')}
+                  </Text>
+                  <Text style={[s.timeDisplayLabel, { color: tokens.textMuted }]}>
+                    :{(timeLeft % 60).toString().padStart(2, '0')} mins
                   </Text>
                 </View>
+              </View>
+            </View>
+
+            {/* ── From / Finish time ── */}
+            <View style={s.timeEstimate}>
+              <View style={s.timeEstimateCol}>
+                <Text style={[s.timeEstimateLabel, { color: tokens.textMuted }]}>From</Text>
+                <Text style={[s.timeEstimateValue, { color: tokens.textSecondary }]}>
+                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <View style={[s.timeEstimateDivider, { backgroundColor: tokens.borderPrimary }]} />
+              <View style={s.timeEstimateCol}>
+                <Text style={[s.timeEstimateLabel, { color: tokens.textMuted }]}>Finish</Text>
+                <Text style={[s.timeEstimateValue, { color: tokens.textSecondary }]}>
+                  {new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </View>
             </View>
 
@@ -769,22 +859,52 @@ function makeStyles(tokens: ReturnType<typeof useTheme>['tokens']) {
     modeLabel: { fontSize: 14, fontWeight: '600' },
     // Ring
     ringWrapper: {
-      width: 180,
-      height: 180,
+      width: 220,
+      height: 220,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 24,
+      marginBottom: 16,
     },
     ringCenter: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    timeDisplay: {
-      fontSize: 36,
+    timeDisplayLarge: {
+      fontSize: 48,
       fontWeight: '700',
       fontVariant: ['tabular-nums'],
       letterSpacing: 1,
+    },
+    timeDisplayLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginTop: -4,
+    },
+    // From / Finish time estimate
+    timeEstimate: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 24,
+      marginBottom: 24,
+    },
+    timeEstimateCol: {
+      alignItems: 'center',
+      gap: 2,
+    },
+    timeEstimateLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    timeEstimateValue: {
+      fontSize: 18,
+      fontWeight: '600',
+      fontVariant: ['tabular-nums'],
+    },
+    timeEstimateDivider: {
+      width: 1,
+      height: 32,
     },
     // Controls
     controls: {

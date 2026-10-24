@@ -57,6 +57,8 @@
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
     "@types/react": "18.3.12",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "~8.0.1",
     "fast-check": "4.10.2",
     "jsdom": "25.0.1",
     "typescript": "^5.3.3",

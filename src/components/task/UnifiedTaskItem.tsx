@@ -40,6 +40,7 @@ import {
   Focus,
   CalendarClock,
   StickyNote,
+  Flag,
 } from 'lucide-react-native'
 
 import { useTheme } from '@/src/hooks/useTheme'
@@ -142,6 +143,7 @@ export function UnifiedTaskItem({
   const totalSubs = task.subtasks?.length ?? 0
   const isRecurring = task.recurrence && task.recurrence !== 'none'
   const hasNote = !!(task as any).note?.trim()
+  const isHighPriority = task.priority === 'high'
 
   // Time display: range if we have both start time and duration
   const timeLabel = getTimeRangeLabel(task.dueTime, task.duration)
@@ -271,8 +273,13 @@ export function UnifiedTaskItem({
           </Animated.Text>
 
           {/* Meta row: indicators only (no topic name) */}
-          {(isRecurring || hasSubtasks || hasNote || (isOverdue && !task.completed)) && (
+          {(isRecurring || hasSubtasks || hasNote || isHighPriority || (isOverdue && !task.completed)) && (
             <View style={styles.metaRow}>
+              {/* High priority indicator */}
+              {isHighPriority && (
+                <Flag size={12} color={tokens.accentRed} fill={tokens.accentRed} />
+              )}
+
               {/* Recurrence indicator */}
               {isRecurring && (
                 <View style={styles.metaItem}>

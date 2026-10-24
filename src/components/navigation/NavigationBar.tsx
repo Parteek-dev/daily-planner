@@ -18,13 +18,15 @@
  * Requirements: 4.3, 4.5, 8.6
  */
 
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Pressable,
   Text,
   StyleSheet,
   Platform,
+  Animated,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -104,6 +106,7 @@ const makeStyles = (tokens: Tokens) =>
       backgroundColor: tokens.bgElevated,
       paddingVertical: tokens.spacing.sm,
       paddingHorizontal: tokens.spacing.sm,
+      position: 'relative',
       // Shadow for floating effect
       ...Platform.select({
         ios: {
@@ -123,13 +126,24 @@ const makeStyles = (tokens: Tokens) =>
     // Individual tab button
     tab: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: tokens.spacing.xs,
       borderRadius: tokens.radius.lg,
       minHeight: 48,
     },
-    // Active pill indicator background
+    // Inner pressable area
+    tabPressable: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: tokens.spacing.xs,
+    },
+    // Sliding indicator (animated background pill)
+    slidingIndicator: {
+      position: 'absolute',
+      top: tokens.spacing.sm,
+      bottom: tokens.spacing.sm,
+      borderRadius: tokens.radius.lg,
+    },
+    // Active pill indicator background (kept for reference, not used with sliding)
     tabActive: {
       backgroundColor: `${tokens.accentPrimary}15`,
     },
@@ -213,32 +227,31 @@ function TabItem({
   const showBadge = tab.route === 'today' && overdueCount > 0;
 
   return (
-    <PressableScale
-      style={[
-        styles.tab,
-        isFocused && styles.tabActive,
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: isFocused }}
-      accessibilityLabel={tab.label}
-    >
-      <View style={styles.iconWrapper}>
-        <tab.Icon
-          size={22}
-          color={iconColor}
-          strokeWidth={isFocused ? 2.5 : 2}
-        />
-        {showBadge && <OverdueBadge count={overdueCount} styles={styles} />}
-      </View>
-      <Text
-        style={[styles.label, { color: labelColor }]}
-        numberOfLines={1}
+    <View style={styles.tab}>
+      <PressableScale
+        style={styles.tabPressable}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isFocused }}
+        accessibilityLabel={tab.label}
       >
-        {tab.label}
-      </Text>
-    </PressableScale>
+        <View style={styles.iconWrapper}>
+          <tab.Icon
+            size={22}
+            color={iconColor}
+            strokeWidth={isFocused ? 2.5 : 2}
+          />
+          {showBadge && <OverdueBadge count={overdueCount} styles={styles} />}
+        </View>
+        <Text
+          style={[styles.label, { color: labelColor }]}
+          numberOfLines={1}
+        >
+          {tab.label}
+        </Text>
+      </PressableScale>
+    </View>
   );
 }
 
@@ -257,10 +270,45 @@ export default function NavigationBar({
   // Calculate bottom spacing: 12-16px + safe area
   const bottomSpacing = Math.max(insets.bottom, tokens.spacing.md) + tokens.spacing.md;
 
-  // Helper to get the navigation index for a route
-  const getRouteIndex = (route: string): number => {
-    const allTabs = [...LEFT_TABS, ...RIGHT_TABS];
-    return allTabs.findIndex((t) => t.route === route);
+  // All navigable tabs (excluding Profile which is a modal)
+  const ALL_TABS = [...LEFT_TABS, ...RIGHT_TABS];
+  const TAB_COUNT = ALL_TABS.length;
+
+  // Track container width and calculate tab width
+  const [containerWidth, setContainerWidth] = useState(0);
+  const padding = tokens.spacing.sm;
+  // Account for Profile tab (5 total tabs displayed)
+  const tabWidth = containerWidth > 0 ? (containerWidth - padding * 2) / 5 : 0;
+
+  // Get active tab index in our array (0-3 for the 4 navigable tabs)
+  const activeRouteName = state.routes[state.index]?.name;
+  const activeTabIndex = ALL_TABS.findIndex(t => t.route === activeRouteName);
+
+  // Animated value for sliding indicator position
+  const indicatorLeft = useRef(new Animated.Value(0)).current;
+
+  // Animate indicator when tab changes
+  useEffect(() => {
+    if (tabWidth > 0 && activeTabIndex >= 0) {
+      const targetLeft = padding + (activeTabIndex * tabWidth);
+      Animated.spring(indicatorLeft, {
+        toValue: targetLeft,
+        useNativeDriver: false,
+        tension: 300,
+        friction: 30,
+      }).start();
+    }
+  }, [activeTabIndex, tabWidth, indicatorLeft, padding]);
+
+  // Handle container layout to get width
+  const handleContainerLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth(width);
+    // Initialize indicator position
+    if (activeTabIndex >= 0) {
+      const targetLeft = padding + (activeTabIndex * ((width - padding * 2) / 5));
+      indicatorLeft.setValue(targetLeft);
+    }
   };
 
   // Navigation handlers
@@ -297,7 +345,25 @@ export default function NavigationBar({
   return (
     <View style={[styles.wrapper, { paddingBottom: bottomSpacing }]}>
       {/* Floating navigation bar */}
-      <View style={styles.container} accessibilityRole="tablist">
+      <View
+        style={styles.container}
+        accessibilityRole="tablist"
+        onLayout={handleContainerLayout}
+      >
+        {/* Sliding indicator background */}
+        {tabWidth > 0 && activeTabIndex >= 0 && (
+          <Animated.View
+            style={[
+              styles.slidingIndicator,
+              {
+                left: indicatorLeft,
+                width: tabWidth,
+                backgroundColor: `${tokens.accentPrimary}15`,
+              },
+            ]}
+          />
+        )}
+
         {/* Left tabs: Home, Tasks */}
         {LEFT_TABS.map((tab) => {
           const navIndex = state.routes.findIndex((r) => r.name === tab.route);
@@ -343,15 +409,17 @@ export default function NavigationBar({
           accessibilityRole="tab"
           accessibilityLabel="Profile"
         >
-          <View style={styles.iconWrapper}>
-            <User size={22} color={tokens.textMuted} strokeWidth={2} />
+          <View style={styles.tabPressable}>
+            <View style={styles.iconWrapper}>
+              <User size={22} color={tokens.textMuted} strokeWidth={2} />
+            </View>
+            <Text
+              style={[styles.label, { color: tokens.textMuted }]}
+              numberOfLines={1}
+            >
+              Profile
+            </Text>
           </View>
-          <Text
-            style={[styles.label, { color: tokens.textMuted }]}
-            numberOfLines={1}
-          >
-            Profile
-          </Text>
         </PressableScale>
       </View>
     </View>

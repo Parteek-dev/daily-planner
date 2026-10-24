@@ -58,14 +58,20 @@ export function CalendarPicker({ value, onSelect, onClose }: CalendarPickerProps
   const { tokens } = useTheme()
   const styles = useMemo(() => makeStyles(tokens), [tokens])
 
-  const todayYMD = useMemo(() => toYMD(new Date()), [])
-
   // Seed the visible month from the selected value, falling back to today.
   const seed = useMemo(() => parseYMD(value) ?? new Date(), [value])
   const [viewYear, setViewYear] = useState(seed.getFullYear())
   const [viewMonth, setViewMonth] = useState(seed.getMonth())
 
-  const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth])
+  // Fixed 42-cell grid, chunked into 6 rows of 7 for rendering.
+  const weeks = useMemo(() => {
+    const cells = buildMonthGrid(viewYear, viewMonth)
+    const rows: MonthCell[][] = []
+    for (let i = 0; i < cells.length; i += 7) {
+      rows.push(cells.slice(i, i + 7))
+    }
+    return rows
+  }, [viewYear, viewMonth])
 
   const goPrevMonth = () => {
     setViewMonth((m) => {
@@ -88,7 +94,22 @@ export function CalendarPicker({ value, onSelect, onClose }: CalendarPickerProps
   }
 
   const handleSelect = (cell: MonthCell) => {
+    // Selecting a leading/trailing day also navigates to that day's month.
+    if (!cell.inCurrentMonth) {
+      const d = parseYMD(cell.ymd)
+      if (d) {
+        setViewYear(d.getFullYear())
+        setViewMonth(d.getMonth())
+      }
+    }
     onSelect(cell.ymd)
+  }
+
+  const goToday = () => {
+    const now = new Date()
+    setViewYear(now.getFullYear())
+    setViewMonth(now.getMonth())
+    onSelect(toYMD(now))
   }
 
   const makeKeyProps = (cell: MonthCell): WebKeyProps =>
@@ -128,6 +149,23 @@ export function CalendarPicker({ value, onSelect, onClose }: CalendarPickerProps
         </Text>
 
         <Pressable
+          onPress={goToday}
+          style={({ pressed, focused }: PressableState) => [
+            styles.todayBtn,
+            focused && styles.focused,
+            pressed && styles.pressed,
+          ]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go to today"
+          {...(Platform.OS === 'web' ? ({ focusable: true } as WebKeyProps) : {})}
+        >
+          <Text style={styles.todayBtnText} numberOfLines={1}>
+            Today
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={goNextMonth}
           style={({ pressed, focused }: PressableState) => [
             styles.navBtn,
@@ -154,37 +192,38 @@ export function CalendarPicker({ value, onSelect, onClose }: CalendarPickerProps
         ))}
       </View>
 
-      {/* Weeks */}
+      {/* Fixed 6-row grid (42 cells), rendered a week of 7 at a time */}
       {weeks.map((week, wi) => (
         <View key={`week-${wi}`} style={styles.weekRow}>
           {week.map((cell) => {
             const isSelected = value !== '' && cell.ymd === value
-            const isToday = cell.ymd === todayYMD
+            const dayNum = Number(cell.ymd.slice(8, 10))
             return (
               <Pressable
                 key={cell.ymd}
                 onPress={() => handleSelect(cell)}
                 style={({ pressed, focused }: PressableState) => [
                   styles.dayCell,
-                  isToday && !isSelected && styles.dayToday,
+                  cell.isToday && !isSelected && styles.dayToday,
                   isSelected && styles.daySelected,
+                  isSelected && cell.isToday && styles.daySelectedToday,
                   focused && styles.focused,
                   pressed && styles.pressed,
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={cell.ymd}
+                accessibilityLabel={cell.isToday ? `${cell.ymd}, today` : cell.ymd}
                 {...makeKeyProps(cell)}
               >
                 <Text
                   style={[
                     styles.dayText,
-                    !cell.inMonth && styles.dayTextMuted,
+                    !cell.inCurrentMonth && styles.dayTextMuted,
                     isSelected && styles.dayTextSelected,
                   ]}
                   numberOfLines={1}
                 >
-                  {cell.day}
+                  {dayNum}
                 </Text>
               </Pressable>
             )
@@ -228,13 +267,29 @@ function makeStyles(tokens: Tokens) {
       flex: 1,
       textAlign: 'center',
     },
+    todayBtn: {
+      minHeight: CELL_SIZE,
+      paddingHorizontal: tokens.spacing.sm,
+      borderRadius: tokens.radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'transparent',
+      marginRight: tokens.spacing.xs,
+    },
+    todayBtnText: {
+      ...tokens.typography.caption,
+      color: tokens.accentPrimary,
+      fontWeight: '600',
+    },
     navBtn: {
       width: CELL_SIZE,
       height: CELL_SIZE,
       borderRadius: tokens.radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: tokens.bgInput,
+      borderWidth: 1,
+      borderColor: 'transparent',
     },
     weekRow: {
       flexDirection: 'row',
@@ -268,6 +323,10 @@ function makeStyles(tokens: Tokens) {
     daySelected: {
       backgroundColor: tokens.accentPrimary,
       borderColor: tokens.accentPrimary,
+    },
+    // When today is also the selected day: filled + a distinct ring.
+    daySelectedToday: {
+      borderColor: tokens.textInverse,
     },
     dayText: {
       ...tokens.typography.body,

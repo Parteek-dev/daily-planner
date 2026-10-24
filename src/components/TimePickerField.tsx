@@ -1,15 +1,13 @@
 /**
- * TimePickerField — cross-platform time input.
+ * TimePickerField — themed start→end time RANGE input (cross-platform).
  *
- * One themed implementation on iOS / Android / Web: a Pressable trigger styled
- * from tokens shows the time as 12-hour AM/PM (or placeholder), and opening it
- * reveals the themed WheelTimePicker inside a Modal overlay — a centered card on
- * web/wide viewports and a bottom-sheet card on mobile. No <input type="time">
- * and no native datetimepicker module.
+ * Renders a tappable trigger showing the current range ("9:30 AM – 10:30 AM")
+ * or the placeholder when empty. Tapping opens a themed Modal containing the
+ * WheelTimePicker range selector — a centered card on web/wide viewports and a
+ * bottom-sheet card on mobile, mirroring DatePickerField. Works identically on
+ * iOS / Android / Web from one implementation — no native datetimepicker module.
  *
- * value and onChange deal in HH:MM strings (24-hour) or null.
- *
- * Requirements: 7.1
+ * Values are HH:MM 24-hour strings (or null). The range is same-day only.
  */
 
 import React, { useMemo, useState } from 'react'
@@ -27,22 +25,43 @@ import { useTheme } from '@/src/hooks/useTheme'
 import { applyElevation, type Tokens } from '@/src/theme/tokens'
 import { SIDEBAR_BREAKPOINT } from '@/src/constants'
 import { formatTime12h } from '@/src/lib/datetime'
-import { WheelTimePicker } from '@/src/components/WheelTimePicker'
+import { WheelTimePicker, type TimeRange } from '@/src/components/WheelTimePicker'
 
 export interface TimePickerFieldProps {
-  readonly value: string | null
-  readonly onChange: (time: string | null) => void
+  /** Start time as HH:MM (24h), or null when unset. */
+  readonly startValue: string | null
+  /** End time as HH:MM (24h), or null when unset. */
+  readonly endValue: string | null
+  /** Called with the committed {start, end} range (both null when cleared). */
+  readonly onChange: (range: TimeRange) => void
   readonly label?: string
   readonly placeholder?: string
 }
 
 type WebFocusProps = { focusable?: boolean }
 
-// react-native-web adds `focused` to the Pressable state callback; the RN types
-// don't declare it, so extend the type for the web focus-ring styling.
+type WebKeyProps = {
+  onKeyDown?: (e: { key?: string; preventDefault?: () => void }) => void
+  focusable?: boolean
+}
+
 type PressableState = PressableStateCallbackType & { focused?: boolean }
 
-export function TimePickerField({ value, onChange, label, placeholder }: TimePickerFieldProps) {
+/** Build the trigger label from the current range. */
+function rangeLabel(start: string | null, end: string | null): string | null {
+  const s = formatTime12h(start)
+  if (!s) return null
+  const e = formatTime12h(end)
+  return e ? `${s} – ${e}` : s
+}
+
+export function TimePickerField({
+  startValue,
+  endValue,
+  onChange,
+  label,
+  placeholder,
+}: TimePickerFieldProps) {
   const { tokens } = useTheme()
   const { width } = useWindowDimensions()
   const styles = useMemo(() => makeStyles(tokens), [tokens])
@@ -50,29 +69,46 @@ export function TimePickerField({ value, onChange, label, placeholder }: TimePic
   const isMobile = !(Platform.OS === 'web' && width > SIDEBAR_BREAKPOINT)
   const [open, setOpen] = useState(false)
 
-  const display = formatTime12h(value)
-  const hasValue = display !== ''
+  const display = rangeLabel(startValue, endValue)
+  const hasValue = display !== null
+
+  const openPicker = () => setOpen(true)
+  const closePicker = () => setOpen(false)
+
+  const webKeyProps: WebKeyProps =
+    Platform.OS === 'web'
+      ? {
+        focusable: true,
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault?.()
+            openPicker()
+          }
+        },
+      }
+      : {}
 
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.labelText}>{label}</Text> : null}
 
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={openPicker}
         style={({ pressed, focused }: PressableState) => [
           styles.trigger,
           focused && styles.triggerFocused,
           pressed && styles.pressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel={label ?? 'Time'}
-        {...(Platform.OS === 'web' ? ({ focusable: true } as WebFocusProps) : {})}
+        accessibilityLabel={label ?? 'Time range'}
+        accessibilityValue={{ text: display ?? (placeholder ?? 'No time set') }}
+        {...webKeyProps}
       >
         <Text
           style={[styles.triggerText, !hasValue && styles.triggerPlaceholder]}
           numberOfLines={1}
         >
-          {hasValue ? display : placeholder ?? 'Select time'}
+          {display ?? (placeholder ?? 'Add time')}
         </Text>
       </Pressable>
 
@@ -81,18 +117,26 @@ export function TimePickerField({ value, onChange, label, placeholder }: TimePic
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => setOpen(false)}
+        onRequestClose={closePicker}
       >
         <Pressable
           style={[styles.backdrop, isMobile ? styles.backdropMobile : styles.backdropCentered]}
-          onPress={() => setOpen(false)}
+          onPress={closePicker}
           accessibilityLabel="Close time picker"
         >
           <Pressable
             style={[styles.card, isMobile ? styles.cardMobile : styles.cardCentered]}
             onPress={(e) => e.stopPropagation()}
           >
-            <WheelTimePicker value={value} onChange={onChange} onClose={() => setOpen(false)} />
+            {label ? <Text style={styles.cardTitle}>{label}</Text> : null}
+            <WheelTimePicker
+              // Remount per open so the draft reseeds from the latest committed value.
+              key={open ? `${startValue ?? ''}-${endValue ?? ''}` : 'closed'}
+              startValue={startValue}
+              endValue={endValue}
+              onChange={onChange}
+              onClose={closePicker}
+            />
           </Pressable>
         </Pressable>
       </Modal>
@@ -102,9 +146,7 @@ export function TimePickerField({ value, onChange, label, placeholder }: TimePic
 
 function makeStyles(tokens: Tokens) {
   return StyleSheet.create({
-    wrapper: {
-      gap: tokens.spacing.xs,
-    },
+    wrapper: { gap: tokens.spacing.xs },
     labelText: {
       ...tokens.typography.caption,
       color: tokens.textSecondary,
@@ -115,9 +157,9 @@ function makeStyles(tokens: Tokens) {
       borderRadius: tokens.radius.sm,
       paddingHorizontal: tokens.spacing.md,
       paddingVertical: tokens.spacing.md,
-      backgroundColor: tokens.bgInput,
       minHeight: 44,
       justifyContent: 'center',
+      backgroundColor: tokens.bgInput,
     },
     triggerFocused: {
       borderColor: tokens.borderFocus,
@@ -147,11 +189,12 @@ function makeStyles(tokens: Tokens) {
     card: {
       backgroundColor: tokens.bgElevated,
       padding: tokens.spacing.lg,
+      gap: tokens.spacing.md,
       ...applyElevation(tokens.elevation.lg),
     },
     cardCentered: {
       width: '100%',
-      maxWidth: 360,
+      maxWidth: 420,
       borderRadius: tokens.radius.lg,
     },
     cardMobile: {
@@ -159,6 +202,10 @@ function makeStyles(tokens: Tokens) {
       borderTopLeftRadius: tokens.radius.xl,
       borderTopRightRadius: tokens.radius.xl,
       paddingBottom: tokens.spacing.xl,
+    },
+    cardTitle: {
+      ...tokens.typography.subheading,
+      color: tokens.textPrimary,
     },
   })
 }

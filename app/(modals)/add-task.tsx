@@ -50,6 +50,9 @@ import { useProgress } from '@/src/hooks/useProgress'
 import { useTheme } from '@/src/hooks/useTheme'
 import { DatePickerField } from '@/src/components/DatePickerField'
 import { TimePickerField } from '@/src/components/TimePickerField'
+import type { TimeRange } from '@/src/components/WheelTimePicker'
+import { durationBetween } from '@/src/lib/datetime'
+import { fmtDuration } from '@/src/lib/utils'
 import { DurationField } from '@/src/components/DurationField'
 import { SIDEBAR_BREAKPOINT } from '@/src/constants'
 import type { Task } from '@/src/lib/firestoreMappers'
@@ -141,6 +144,7 @@ export default function AddTaskModal() {
   const [duration, setDuration] = useState<number | null>(30)
   const [date, setDate] = useState('')
   const [dueTime, setDueTime] = useState<string | null>(null)
+  const [endTime, setEndTime] = useState<string | null>(null)
   const [priority, setPriority] = useState<Priority>(null)
   const [dependsOn, setDependsOn] = useState<string[]>([])
   const [subtasks, setSubtasks] = useState<SubtaskItem[]>([])
@@ -172,6 +176,7 @@ export default function AddTaskModal() {
       setDuration(editTask.duration)
       setDate(editTask.date)
       setDueTime(editTask.dueTime)
+      setEndTime(editTask.endTime ?? null)
       setPriority(editTask.priority as Priority)
       setDependsOn(editTask.dependsOn ?? [])
       setSubtasks(editTask.subtasks ?? [])
@@ -191,6 +196,7 @@ export default function AddTaskModal() {
       setDuration(30)
       setDate(params.date ?? new Date().toISOString().split('T')[0])
       setDueTime(null)
+      setEndTime(null)
       setPriority(null)
       setDependsOn([])
       setSubtasks([])
@@ -262,6 +268,7 @@ export default function AddTaskModal() {
       duration: duration ?? 30,
       date,
       dueTime: dueTime || null,
+      endTime: endTime || null,
       priority: priority || null,
       dependsOn,
       subtasks,
@@ -285,7 +292,20 @@ export default function AddTaskModal() {
     } finally {
       setSaving(false)
     }
-  }, [saving, description, topic, duration, date, dueTime, priority, dependsOn, subtasks, recurrence, recurrenceEndDate, customDays, isEdit, editTask, addTask, updateTask, router])
+  }, [saving, description, topic, duration, date, dueTime, endTime, priority, dependsOn, subtasks, recurrence, recurrenceEndDate, customDays, isEdit, editTask, addTask, updateTask, router])
+
+  // When a valid same-day range is set, the range drives both the times and the
+  // duration. Clearing the range reverts Duration to a manual, editable field.
+  const handleTimeRangeChange = useCallback((range: TimeRange) => {
+    setDueTime(range.start)
+    setEndTime(range.end)
+    const mins = durationBetween(range.start, range.end)
+    if (mins !== null) setDuration(mins)
+    markDirty()
+  }, [])
+
+  // Duration is derived (read-only) only when a valid range is present.
+  const isRangeActive = durationBetween(dueTime, endTime) !== null
 
   const handleSubmit = useCallback(() => {
     // Prevent submission if already saving
@@ -535,18 +555,28 @@ export default function AddTaskModal() {
                 <View style={styles.scheduleFieldMobile}>
                   <Text style={styles.labelSmall}>Time</Text>
                   <TimePickerField
-                    value={dueTime}
-                    onChange={v => { setDueTime(v); markDirty() }}
+                    startValue={dueTime}
+                    endValue={endTime}
+                    onChange={handleTimeRangeChange}
                     placeholder="Add time"
                   />
                 </View>
               </View>
               <View style={styles.scheduleFieldFull}>
                 <Text style={styles.labelSmall}>Duration</Text>
-                <DurationField
-                  value={duration}
-                  onChange={v => { setDuration(v); markDirty() }}
-                />
+                {isRangeActive ? (
+                  <View style={styles.durationDerived}>
+                    <Text style={styles.durationDerivedText} numberOfLines={1}>
+                      {fmtDuration(duration ?? 0)} (from time range)
+                    </Text>
+                  </View>
+                ) : (
+                  <DurationField
+                    value={duration}
+                    onChange={v => { setDuration(v); markDirty() }}
+                    showPresets
+                  />
+                )}
               </View>
             </>
           ) : (
@@ -562,17 +592,27 @@ export default function AddTaskModal() {
               <View style={styles.scheduleFieldDesktop}>
                 <Text style={styles.labelSmall}>Time</Text>
                 <TimePickerField
-                  value={dueTime}
-                  onChange={v => { setDueTime(v); markDirty() }}
+                  startValue={dueTime}
+                  endValue={endTime}
+                  onChange={handleTimeRangeChange}
                   placeholder="Add time"
                 />
               </View>
               <View style={styles.scheduleFieldDesktop}>
                 <Text style={styles.labelSmall}>Duration</Text>
-                <DurationField
-                  value={duration}
-                  onChange={v => { setDuration(v); markDirty() }}
-                />
+                {isRangeActive ? (
+                  <View style={styles.durationDerived}>
+                    <Text style={styles.durationDerivedText} numberOfLines={1}>
+                      {fmtDuration(duration ?? 0)} (from time range)
+                    </Text>
+                  </View>
+                ) : (
+                  <DurationField
+                    value={duration}
+                    onChange={v => { setDuration(v); markDirty() }}
+                    showPresets
+                  />
+                )}
               </View>
             </View>
           )}
@@ -1200,6 +1240,21 @@ function makeStyles(tokens: Tokens) {
     },
     scheduleFieldFull: {
       width: '100%',
+    },
+    durationDerived: {
+      borderWidth: 1,
+      borderColor: tokens.borderPrimary,
+      borderRadius: tokens.radius.sm,
+      paddingHorizontal: tokens.spacing.md,
+      paddingVertical: tokens.spacing.md,
+      minHeight: 44,
+      justifyContent: 'center',
+      backgroundColor: tokens.bgTertiary,
+    },
+    durationDerivedText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: tokens.textSecondary,
     },
 
     // ─── Chips ───

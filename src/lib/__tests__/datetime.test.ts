@@ -6,7 +6,10 @@ import {
   formatTime12h,
   formatDateDisplay,
   buildMonthGrid,
+  durationBetween,
+  isValidSameDayRange,
   parseYMD,
+  toYMD,
   isValidHHMM,
   type Period,
 } from '../datetime'
@@ -120,34 +123,86 @@ describe('formatDateDisplay', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildMonthGrid', () => {
-  it('returns full weeks of 7 cells', () => {
-    const grid = buildMonthGrid(2025, 1) // Feb 2025
-    for (const week of grid) {
-      expect(week).toHaveLength(7)
-    }
+  it('always returns a fixed flat 42-cell grid (6 rows x 7)', () => {
+    // A month needing 6 week-rows (May 2027: 1st is Saturday, 31 days)…
+    expect(buildMonthGrid(2027, 4)).toHaveLength(42)
+    // …and a month needing only 5 rows is still padded to 42.
+    expect(buildMonthGrid(2025, 1)).toHaveLength(42) // Feb 2025
+    expect(buildMonthGrid(2024, 0)).toHaveLength(42) // Jan 2024
   })
 
   it('flags out-of-month leading/trailing days and includes every in-month day', () => {
     // Feb 2025: 1st is a Saturday, 28 days.
-    const grid = buildMonthGrid(2025, 1)
-    const cells = grid.flat()
+    const cells = buildMonthGrid(2025, 1)
 
-    const inMonthDays = cells.filter((c) => c.inMonth).map((c) => c.day)
+    const inMonthDays = cells
+      .filter((c) => c.inCurrentMonth)
+      .map((c) => Number(c.ymd.slice(8, 10)))
     // All 28 days present, in order, exactly once.
     expect(inMonthDays).toEqual(Array.from({ length: 28 }, (_, i) => i + 1))
 
     // Leading cells before Feb 1 (Saturday) are out-of-month.
-    expect(cells[0].inMonth).toBe(false)
-    expect(cells.slice(0, 6).every((c) => !c.inMonth)).toBe(true)
+    expect(cells[0].inCurrentMonth).toBe(false)
+    expect(cells.slice(0, 6).every((c) => !c.inCurrentMonth)).toBe(true)
     // First in-month cell is Feb 1.
-    expect(cells[6]).toMatchObject({ day: 1, inMonth: true, ymd: '2025-02-01' })
+    expect(cells[6]).toMatchObject({ inCurrentMonth: true, ymd: '2025-02-01' })
   })
 
   it('produces cells whose ymd parses back to a valid date', () => {
-    const grid = buildMonthGrid(2024, 0) // Jan 2024
-    for (const cell of grid.flat()) {
+    for (const cell of buildMonthGrid(2024, 0)) {
       expect(parseYMD(cell.ymd)).not.toBeNull()
     }
+  })
+
+  it('marks exactly the real current date as isToday', () => {
+    const now = new Date()
+    const todayYMD = toYMD(now)
+    const cells = buildMonthGrid(now.getFullYear(), now.getMonth())
+    const todayCells = cells.filter((c) => c.isToday)
+    expect(todayCells).toHaveLength(1)
+    expect(todayCells[0].ymd).toBe(todayYMD)
+    expect(todayCells[0].inCurrentMonth).toBe(true)
+  })
+
+  it('has no isToday cell for a month that is not the current month', () => {
+    // A month far in the past can never contain today.
+    const cells = buildMonthGrid(2000, 0) // Jan 2000
+    expect(cells.some((c) => c.isToday)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Same-day time range
+// ---------------------------------------------------------------------------
+
+describe('durationBetween', () => {
+  it('computes minutes for a valid same-day range', () => {
+    expect(durationBetween('09:30', '10:30')).toBe(60)
+    expect(durationBetween('09:00', '09:15')).toBe(15)
+    expect(durationBetween('00:00', '23:59')).toBe(1439)
+  })
+
+  it('returns null when end is not strictly after start (no cross-midnight)', () => {
+    expect(durationBetween('10:00', '10:00')).toBeNull() // equal
+    expect(durationBetween('10:00', '09:00')).toBeNull() // end before start
+    expect(durationBetween('23:00', '01:00')).toBeNull() // would cross midnight
+  })
+
+  it('returns null for null or malformed input', () => {
+    expect(durationBetween(null, '10:00')).toBeNull()
+    expect(durationBetween('09:00', null)).toBeNull()
+    expect(durationBetween('bad', '10:00')).toBeNull()
+    expect(durationBetween('09:00', '99:99')).toBeNull()
+  })
+})
+
+describe('isValidSameDayRange', () => {
+  it('is true only when end is strictly after start on the same day', () => {
+    expect(isValidSameDayRange('09:30', '10:30')).toBe(true)
+    expect(isValidSameDayRange('10:00', '10:00')).toBe(false)
+    expect(isValidSameDayRange('10:00', '09:00')).toBe(false)
+    expect(isValidSameDayRange('23:00', '01:00')).toBe(false)
+    expect(isValidSameDayRange(null, '10:00')).toBe(false)
   })
 })
 

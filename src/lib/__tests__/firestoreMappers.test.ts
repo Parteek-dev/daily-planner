@@ -80,6 +80,7 @@ const taskArb: fc.Arbitrary<Task> = fc.record({
   date: dateStrArb,
   originalDate: fc.option(dateStrArb, { nil: null }),
   dueTime: fc.option(timeStrArb, { nil: null }),
+  endTime: fc.option(timeStrArb, { nil: null }),
   completed: fc.boolean(),
   completedAt: fc.option(isoStrArb, { nil: null }),
   createdAt: isoStrArb,
@@ -134,6 +135,7 @@ describe('Property 4: Firestore mapping round-trip', () => {
         expect(restored.date).toBe(task.date)
         expect(restored.originalDate).toBe(task.originalDate)
         expect(restored.dueTime).toBe(task.dueTime)
+        expect(restored.endTime).toBe(task.endTime)
         expect(restored.completed).toBe(task.completed)
         expect(restored.note).toBe(task.note)
         expect(restored.priority).toBe(task.priority)

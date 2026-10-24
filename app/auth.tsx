@@ -200,8 +200,11 @@ export default function AuthScreen() {
 
   const [loading, setLoading] = useState(false)
   const [guestLoading, setGuestLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
+  const [verificationSentTo, setVerificationSentTo] = useState('')
 
   // Quote carousel
   const [quoteIdx, setQuoteIdx] = useState(0)
@@ -230,7 +233,7 @@ export default function AuthScreen() {
     return () => clearTimeout(t)
   }, [])
 
-  const resetForm = () => { setError(''); setSuccess(''); setPassword(''); setConfirmPassword('') }
+  const resetForm = () => { setError(''); setSuccess(''); setPassword(''); setConfirmPassword(''); setUnverifiedEmail(''); setVerificationSentTo('') }
   const switchMode = (m: Mode) => { resetForm(); setMode(m) }
 
   const greeting = getGreeting()
@@ -243,11 +246,36 @@ export default function AuthScreen() {
     if (emailErr) { setError(emailErr); return }
     const pwErr = validatePassword(password)
     if (pwErr) { setError(pwErr); return }
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setUnverifiedEmail('')
     const result = await signIn(email.trim(), password)
     setLoading(false)
-    if (!result.success) setError(result.error ?? 'Sign-in failed.')
+    if (!result.success) {
+      if (result.emailVerified === false) {
+        setUnverifiedEmail(email.trim())
+      }
+      setError(result.error ?? 'Sign-in failed.')
+    }
   }, [email, password, signIn])
+
+  const handleResendVerification = useCallback(async () => {
+    if (!unverifiedEmail) return
+    setResendLoading(true)
+    try {
+      // Sign in temporarily to get the user object, send verification, then sign out
+      const { signInWithEmailAndPassword: fbSignIn } = await import('firebase/auth')
+      const { auth: fbAuth } = await import('@/src/lib/firebase')
+      const { sendEmailVerification: fbSendVerification, signOut: fbSignOut } = await import('firebase/auth')
+      const cred = await fbSignIn(fbAuth, unverifiedEmail, password)
+      await fbSendVerification(cred.user)
+      await fbSignOut(fbAuth)
+      setSuccess('Verification email resent! Check your inbox.')
+      setError('')
+    } catch {
+      setError('Could not resend verification email. Please try again.')
+    } finally {
+      setResendLoading(false)
+    }
+  }, [unverifiedEmail, password])
 
   const handleSignUp = useCallback(async () => {
     if (!displayName.trim()) { setError('Please enter your name.'); return }
@@ -260,7 +288,9 @@ export default function AuthScreen() {
     const result = await signUp(email.trim(), password, displayName.trim())
     setLoading(false)
     if (!result.success) setError(result.error ?? 'Sign-up failed.')
-    else setSuccess('Account created! Signing you in…')
+    else {
+      setVerificationSentTo(email.trim())
+    }
   }, [email, password, confirmPassword, displayName, signUp])
 
   const handleReset = useCallback(async () => {
@@ -404,6 +434,21 @@ export default function AuthScreen() {
               </View>
             )}
 
+            {/* Resend verification button — shown when sign-in is blocked due to unverified email */}
+            {!!unverifiedEmail && !success && (
+              <Pressable
+                onPress={handleResendVerification}
+                disabled={resendLoading}
+                style={[s.resendBtn, { borderColor: isDark ? 'rgba(251,191,36,0.3)' : 'rgba(217,119,6,0.3)', backgroundColor: isDark ? 'rgba(251,191,36,0.08)' : 'rgba(251,191,36,0.07)' }]}
+                accessibilityRole="button"
+                accessibilityLabel="Resend verification email"
+              >
+                {resendLoading
+                  ? <ActivityIndicator size="small" color="#f59e0b" />
+                  : <Text style={s.resendBtnText}>Resend verification email →</Text>}
+              </Pressable>
+            )}
+
             {/* Success banner */}
             {!!success && (
               <View style={[s.banner, s.bannerSuccess]}>
@@ -467,76 +512,123 @@ export default function AuthScreen() {
             {/* ── Sign Up ── */}
             {mode === 'signup' && (
               <View style={s.form}>
-                <IconInput
-                  nativeID="signup-name"
-                  autoComplete="name"
-                  icon={User}
-                  tokens={tokens}
-                  isDark={isDark}
-                  value={displayName}
-                  onChangeText={(v: string) => { setDisplayName(v); setError('') }}
-                  placeholder="Your name"
-                  autoCapitalize="words"
-                  textContentType="name"
-                  returnKeyType="next"
-                  accessibilityLabel="Display name"
-                />
-                <IconInput
-                  nativeID="signup-email"
-                  autoComplete="email"
-                  icon={Mail}
-                  tokens={tokens}
-                  isDark={isDark}
-                  value={email}
-                  onChangeText={(v: string) => { setEmail(v); setError('') }}
-                  placeholder="Email address"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="emailAddress"
-                  returnKeyType="next"
-                  accessibilityLabel="Email address"
-                />
-                <IconInput
-                  nativeID="signup-password"
-                  autoComplete="new-password"
-                  icon={Lock}
-                  rightIcon={showPassword ? EyeOff : Eye}
-                  onRightPress={() => setShowPassword(p => !p)}
-                  tokens={tokens}
-                  isDark={isDark}
-                  value={password}
-                  onChangeText={(v: string) => { setPassword(v); setError('') }}
-                  placeholder={`Password (min ${PASSWORD_MIN_LENGTH} chars)`}
-                  secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  returnKeyType="next"
-                  accessibilityLabel="Password"
-                />
-                <IconInput
-                  nativeID="signup-confirm"
-                  autoComplete="new-password"
-                  icon={Lock}
-                  rightIcon={showConfirm ? EyeOff : Eye}
-                  onRightPress={() => setShowConfirm(p => !p)}
-                  tokens={tokens}
-                  isDark={isDark}
-                  value={confirmPassword}
-                  onChangeText={(v: string) => { setConfirmPassword(v); setError('') }}
-                  placeholder="Confirm password"
-                  secureTextEntry={!showConfirm}
-                  textContentType="newPassword"
-                  returnKeyType="done"
-                  onSubmitEditing={handleSignUp}
-                  accessibilityLabel="Confirm password"
-                />
-
-                <GradientButton onPress={handleSignUp} loading={loading} label="Create Account" />
-
-                <Text style={[s.switchText, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)' }]}>
-                  {'Already have an account? '}
-                  <Text style={s.switchLink} onPress={() => switchMode('signin')}>Sign in</Text>
-                </Text>
+                {verificationSentTo ? (
+                  /* ── Email sent confirmation ── */
+                  <View style={s.verifyBox}>
+                    <View style={[s.verifyIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)' }]}>
+                      <Mail size={28} color="#6366f1" />
+                    </View>
+                    <Text style={[s.verifyTitle, { color: isDark ? '#fff' : '#0f172a' }]}>
+                      Check your inbox
+                    </Text>
+                    <Text style={[s.verifyBody, { color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)' }]}>
+                      We sent a verification link to
+                    </Text>
+                    <Text style={[s.verifyEmail, { color: isDark ? '#a5b4fc' : '#6366f1' }]}>
+                      {verificationSentTo}
+                    </Text>
+                    <Text style={[s.verifyBody, { color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)', marginTop: 8 }]}>
+                      Click the link in the email to verify your account, then come back and sign in.
+                    </Text>
+                    <GradientButton onPress={() => switchMode('signin')} loading={false} label="Go to Sign In" />
+                    <Pressable
+                      onPress={async () => {
+                        setResendLoading(true)
+                        try {
+                          const { signInWithEmailAndPassword: fbSignIn, sendEmailVerification: fbSend, signOut: fbOut } = await import('firebase/auth')
+                          const { auth: fbAuth } = await import('@/src/lib/firebase')
+                          const cred = await fbSignIn(fbAuth, verificationSentTo, password)
+                          await fbSend(cred.user)
+                          await fbOut(fbAuth)
+                          setSuccess('Verification email resent!')
+                        } catch {
+                          setError('Could not resend. Please try signing in and we\'ll prompt you again.')
+                        } finally {
+                          setResendLoading(false)
+                        }
+                      }}
+                      disabled={resendLoading}
+                      style={s.linkBtn}
+                      accessibilityRole="button"
+                    >
+                      {resendLoading
+                        ? <ActivityIndicator size="small" color="#818cf8" />
+                        : <Text style={s.linkText}>Didn't receive it? Resend email</Text>}
+                    </Pressable>
+                  </View>
+                ) : (
+                  /* ── Sign up form ── */
+                  <>
+                    <IconInput
+                      nativeID="signup-name"
+                      autoComplete="name"
+                      icon={User}
+                      tokens={tokens}
+                      isDark={isDark}
+                      value={displayName}
+                      onChangeText={(v: string) => { setDisplayName(v); setError('') }}
+                      placeholder="Your name"
+                      autoCapitalize="words"
+                      textContentType="name"
+                      returnKeyType="next"
+                      accessibilityLabel="Display name"
+                    />
+                    <IconInput
+                      nativeID="signup-email"
+                      autoComplete="email"
+                      icon={Mail}
+                      tokens={tokens}
+                      isDark={isDark}
+                      value={email}
+                      onChangeText={(v: string) => { setEmail(v); setError('') }}
+                      placeholder="Email address"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="emailAddress"
+                      returnKeyType="next"
+                      accessibilityLabel="Email address"
+                    />
+                    <IconInput
+                      nativeID="signup-password"
+                      autoComplete="new-password"
+                      icon={Lock}
+                      rightIcon={showPassword ? EyeOff : Eye}
+                      onRightPress={() => setShowPassword(p => !p)}
+                      tokens={tokens}
+                      isDark={isDark}
+                      value={password}
+                      onChangeText={(v: string) => { setPassword(v); setError('') }}
+                      placeholder={`Password (min ${PASSWORD_MIN_LENGTH} chars)`}
+                      secureTextEntry={!showPassword}
+                      textContentType="newPassword"
+                      returnKeyType="next"
+                      accessibilityLabel="Password"
+                    />
+                    <IconInput
+                      nativeID="signup-confirm"
+                      autoComplete="new-password"
+                      icon={Lock}
+                      rightIcon={showConfirm ? EyeOff : Eye}
+                      onRightPress={() => setShowConfirm(p => !p)}
+                      tokens={tokens}
+                      isDark={isDark}
+                      value={confirmPassword}
+                      onChangeText={(v: string) => { setConfirmPassword(v); setError('') }}
+                      placeholder="Confirm password"
+                      secureTextEntry={!showConfirm}
+                      textContentType="newPassword"
+                      returnKeyType="done"
+                      onSubmitEditing={handleSignUp}
+                      accessibilityLabel="Confirm password"
+                    />
+                    <GradientButton onPress={handleSignUp} loading={loading} label="Create Account" />
+                    <Text style={[s.switchText, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)' }]}>
+                      {'Already have an account? '}
+                      <Text style={s.switchLink} onPress={() => switchMode('signin')}>Sign in</Text>
+                    </Text>
+                  </>
+                )}
               </View>
             )}
 
@@ -751,6 +843,7 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'stretch',
     marginBottom: 12,
     marginTop: 4,
     ...Platform.select({
@@ -820,5 +913,46 @@ const s = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  resendBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resendBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#f59e0b',
+  },
+  verifyBox: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 6,
+  },
+  verifyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  verifyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  verifyBody: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  verifyEmail: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 })

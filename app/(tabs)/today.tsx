@@ -151,6 +151,22 @@ export default function TodayScreen() {
     })
   }, [todayTasks, searchQuery, topicFilter, statusFilter])
 
+  // Sorted by priority for list view (high → medium → low → none, then by due time)
+  const sortedTasksForList = useMemo(() => {
+    const getPrioritySortValue = (p: string | null | undefined) =>
+      ({ high: 0, medium: 1, low: 2 } as Record<string, number>)[p ?? ''] ?? 3
+
+    return [...filteredTasks].sort((a, b) => {
+      const diff = getPrioritySortValue(a.priority) - getPrioritySortValue(b.priority)
+      if (diff !== 0) return diff
+      // Secondary sort by due time
+      if (a.dueTime && b.dueTime) return a.dueTime.localeCompare(b.dueTime)
+      if (a.dueTime) return -1
+      if (b.dueTime) return 1
+      return 0
+    })
+  }, [filteredTasks])
+
   // TIME PLAN data
   const tasksByTopic = useMemo(() => {
     const map: Record<string, Task[]> = {}
@@ -592,8 +608,8 @@ export default function TodayScreen() {
                 </View>
               ) : (
                 <View style={[styles.taskListCard, styles.cardElevated]}>
-                  {filteredTasks.map((task, idx) => {
-                    const isLast = idx === filteredTasks.length - 1
+                  {sortedTasksForList.map((task, idx) => {
+                    const isLast = idx === sortedTasksForList.length - 1
                     return (
                       <UnifiedTaskItem
                         key={task.id}

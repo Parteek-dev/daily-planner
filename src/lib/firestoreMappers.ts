@@ -36,8 +36,8 @@ export interface Task {
   actualDuration: number | null
   date: string                            // YYYY-MM-DD
   originalDate: string | null             // YYYY-MM-DD
-  dueTime: string | null                  // HH:MM
-  endTime?: string | null                 // HH:MM
+  dueTime: string | null                  // HH:MM (start of range)
+  endTime?: string | null                 // HH:MM (end of range; optional)
   completed: boolean
   completedAt: string | null              // ISO 8601
   createdAt: string                       // ISO 8601
@@ -68,6 +68,7 @@ export function docToTask(snap: DocumentSnapshot): Task {
     date: d.date ?? '',
     originalDate: d.original_date ?? null,
     dueTime: d.due_time ?? null,
+    endTime: d.end_time ?? null,
     completed: d.completed ?? false,
     completedAt: d.completed_at
       ? tsToIso(d.completed_at)
@@ -101,6 +102,7 @@ export function taskToDoc(task: Task, userId: string): Record<string, unknown> {
     date: task.date,
     original_date: task.originalDate ?? null,
     due_time: task.dueTime ?? null,
+    end_time: task.endTime ?? null,
     completed: task.completed ?? false,
     completed_at: task.completedAt
       ? Timestamp.fromDate(new Date(task.completedAt))
