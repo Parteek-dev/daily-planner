@@ -3,8 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderWithProviders, screen, fireEvent } from '@/test/renderWithProviders'
 import { makeTask } from '@/test/fixtures/tasks'
 import { DayTimeline } from '@/src/components/task/DayTimeline'
+import type { Task } from '@/src/lib/firestoreMappers'
 
-function setup(tasks = [], props: Record<string, unknown> = {}) {
+function setup(tasks: Task[] = [], props: Record<string, unknown> = {}) {
   const onToggle = vi.fn()
   const onPress = vi.fn()
   renderWithProviders(

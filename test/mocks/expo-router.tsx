@@ -31,6 +31,24 @@ export function usePathname() {
   return __getPathname()
 }
 
+/** Minimal React Navigation shim returned by useNavigation. */
+export function useNavigation() {
+  const router = __getRouter()
+  return {
+    navigate: router.push,
+    push: router.push,
+    replace: router.replace,
+    goBack: router.back,
+    canGoBack: () => true,
+    setOptions: () => { },
+    setParams: router.setParams,
+    dispatch: () => { },
+    addListener: () => () => { },
+    removeListener: () => { },
+    isFocused: () => true,
+  }
+}
+
 /** Runs the callback once via useEffect (web-safe approximation). */
 export function useFocusEffect(cb: () => void | (() => void)) {
   useEffect(() => {
@@ -42,7 +60,7 @@ export function useFocusEffect(cb: () => void | (() => void)) {
 
 // ── Pass-through components ─────────────────────────────────────────────────
 
-export function Link({ children, ...props }: { children?: ReactNode; [k: string]: unknown }) {
+export function Link({ children, ...props }: { children?: ReactNode;[k: string]: unknown }) {
   return <View {...props}>{children}</View>
 }
 
