@@ -126,36 +126,16 @@ vi.mock('expo-file-system', async () => {
 
 // ── lucide-react-native (single Proxy mechanism) ────────────────────────────
 
-vi.mock('lucide-react-native', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const React = require('react')
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { View } = require('react-native') // → react-native-web via web alias
-  const makeIcon = (name: string) => (props: Record<string, unknown>) =>
-    React.createElement(View, {
-      accessibilityRole: 'image',
-      testID: `icon-${name}`,
-      ...props,
-    })
-  return new Proxy(
-    {},
-    {
-      get: (_t, name: string | symbol) =>
-        name === '__esModule' ? true : makeIcon(String(name)),
-    },
-  )
+vi.mock('lucide-react-native', async () => {
+  const m = await import('./mocks/lucide')
+  return m.lucideFactory()
 })
 
 // ── inline expo stubs (blur / speech / document-picker / sharing) ────────────
 
-vi.mock('expo-blur', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const React = require('react')
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { View } = require('react-native')
-  const BlurView = ({ children, ...props }: Record<string, unknown>) =>
-    React.createElement(View, props, children as React.ReactNode)
-  return { BlurView, default: { BlurView } }
+vi.mock('expo-blur', async () => {
+  const m = await import('./mocks/expo-misc')
+  return m.expoBlurFactory()
 })
 
 vi.mock('expo-speech', () => ({
@@ -171,7 +151,7 @@ vi.mock('expo-document-picker', () => ({
 
 vi.mock('expo-sharing', () => ({
   isAvailableAsync: vi.fn(async () => true),
-  shareAsync: vi.fn(async () => {}),
+  shareAsync: vi.fn(async () => { }),
 }))
 
 // ── expo-font / expo-constants / expo-linking ───────────────────────────────
