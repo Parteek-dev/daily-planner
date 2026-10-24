@@ -37,6 +37,7 @@ export interface Task {
   date: string                            // YYYY-MM-DD
   originalDate: string | null             // YYYY-MM-DD
   dueTime: string | null                  // HH:MM
+  endTime?: string | null                 // HH:MM
   completed: boolean
   completedAt: string | null              // ISO 8601
   createdAt: string                       // ISO 8601
@@ -58,29 +59,29 @@ export interface Task {
 export function docToTask(snap: DocumentSnapshot): Task {
   const d = snap.data() ?? {}
   return {
-    id:                   snap.id,
-    title:                d.title ?? '',
-    description:          d.description ?? '',
-    topic:                d.topic ?? 'Personal',
-    duration:             d.duration ?? 30,
-    actualDuration:       d.actual_duration ?? null,
-    date:                 d.date ?? '',
-    originalDate:         d.original_date ?? null,
-    dueTime:              d.due_time ?? null,
-    completed:            d.completed ?? false,
-    completedAt:          d.completed_at
-                            ? tsToIso(d.completed_at)
-                            : null,
-    createdAt:            d.created_at
-                            ? tsToIso(d.created_at)
-                            : new Date().toISOString(),
-    note:                 d.note ?? '',
-    priority:             d.priority ?? null,
-    dependsOn:            d.depends_on ?? [],
-    subtasks:             d.subtasks ?? [],
-    recurrence:           d.recurrence ?? 'none',
-    recurrenceEndDate:    d.recurrence_end_date ?? null,
-    recurrenceParentId:   d.recurrence_parent_id ?? null,
+    id: snap.id,
+    title: d.title ?? '',
+    description: d.description ?? '',
+    topic: d.topic ?? 'Personal',
+    duration: d.duration ?? 30,
+    actualDuration: d.actual_duration ?? null,
+    date: d.date ?? '',
+    originalDate: d.original_date ?? null,
+    dueTime: d.due_time ?? null,
+    completed: d.completed ?? false,
+    completedAt: d.completed_at
+      ? tsToIso(d.completed_at)
+      : null,
+    createdAt: d.created_at
+      ? tsToIso(d.created_at)
+      : new Date().toISOString(),
+    note: d.note ?? '',
+    priority: d.priority ?? null,
+    dependsOn: d.depends_on ?? [],
+    subtasks: d.subtasks ?? [],
+    recurrence: d.recurrence ?? 'none',
+    recurrenceEndDate: d.recurrence_end_date ?? null,
+    recurrenceParentId: d.recurrence_parent_id ?? null,
     customRecurrenceDays: d.custom_recurrence_days ?? null,
   }
 }
@@ -91,29 +92,29 @@ export function docToTask(snap: DocumentSnapshot): Task {
  */
 export function taskToDoc(task: Task, userId: string): Record<string, unknown> {
   return {
-    user_id:               userId,
-    title:                 task.title,
-    description:           task.description ?? '',
-    topic:                 task.topic ?? 'Personal',
-    duration:              task.duration ?? 30,
-    actual_duration:       task.actualDuration ?? null,
-    date:                  task.date,
-    original_date:         task.originalDate ?? null,
-    due_time:              task.dueTime ?? null,
-    completed:             task.completed ?? false,
-    completed_at:          task.completedAt
-                             ? Timestamp.fromDate(new Date(task.completedAt))
-                             : null,
-    created_at:            task.createdAt
-                             ? Timestamp.fromDate(new Date(task.createdAt))
-                             : Timestamp.now(),
-    note:                  task.note ?? '',
-    priority:              task.priority ?? null,
-    depends_on:            task.dependsOn ?? [],
-    subtasks:              task.subtasks ?? [],
-    recurrence:            task.recurrence ?? 'none',
-    recurrence_end_date:   task.recurrenceEndDate ?? null,
-    recurrence_parent_id:  task.recurrenceParentId ?? null,
+    user_id: userId,
+    title: task.title,
+    description: task.description ?? '',
+    topic: task.topic ?? 'Personal',
+    duration: task.duration ?? 30,
+    actual_duration: task.actualDuration ?? null,
+    date: task.date,
+    original_date: task.originalDate ?? null,
+    due_time: task.dueTime ?? null,
+    completed: task.completed ?? false,
+    completed_at: task.completedAt
+      ? Timestamp.fromDate(new Date(task.completedAt))
+      : null,
+    created_at: task.createdAt
+      ? Timestamp.fromDate(new Date(task.createdAt))
+      : Timestamp.now(),
+    note: task.note ?? '',
+    priority: task.priority ?? null,
+    depends_on: task.dependsOn ?? [],
+    subtasks: task.subtasks ?? [],
+    recurrence: task.recurrence ?? 'none',
+    recurrence_end_date: task.recurrenceEndDate ?? null,
+    recurrence_parent_id: task.recurrenceParentId ?? null,
     custom_recurrence_days: task.customRecurrenceDays ?? null,
   }
 }
@@ -130,8 +131,8 @@ export interface Topic {
 export function docToTopic(snap: DocumentSnapshot): Topic {
   const d = snap.data() ?? {}
   return {
-    id:    snap.id,
-    name:  d.name ?? '',
+    id: snap.id,
+    name: d.name ?? '',
     color: d.color ?? '#64748b',
   }
 }
@@ -143,8 +144,8 @@ export function docToTopic(snap: DocumentSnapshot): Topic {
 export function topicToDoc(topic: Topic, userId: string): Record<string, unknown> {
   return {
     user_id: userId,
-    name:    topic.name,
-    color:   topic.color,
+    name: topic.name,
+    color: topic.color,
   }
 }
 
@@ -163,15 +164,15 @@ export function docToNote(snap: DocumentSnapshot): Note {
   const d = snap.data() ?? {}
   const now = new Date().toISOString()
   return {
-    id:        snap.id,
-    date:      d.date ?? snap.id,
-    content:   d.content ?? '',
+    id: snap.id,
+    date: d.date ?? snap.id,
+    content: d.content ?? '',
     createdAt: d.created_at
-                 ? tsToIso(d.created_at)
-                 : now,
+      ? tsToIso(d.created_at)
+      : now,
     updatedAt: d.updated_at
-                 ? tsToIso(d.updated_at)
-                 : now,
+      ? tsToIso(d.updated_at)
+      : now,
   }
 }
 
@@ -181,15 +182,15 @@ export function docToNote(snap: DocumentSnapshot): Note {
  */
 export function noteToDoc(note: Note, userId: string): Record<string, unknown> {
   return {
-    user_id:    userId,
-    date:       note.date,
-    content:    note.content ?? '',
+    user_id: userId,
+    date: note.date,
+    content: note.content ?? '',
     created_at: note.createdAt
-                  ? Timestamp.fromDate(new Date(note.createdAt))
-                  : Timestamp.now(),
+      ? Timestamp.fromDate(new Date(note.createdAt))
+      : Timestamp.now(),
     updated_at: note.updatedAt
-                  ? Timestamp.fromDate(new Date(note.updatedAt))
-                  : Timestamp.now(),
+      ? Timestamp.fromDate(new Date(note.updatedAt))
+      : Timestamp.now(),
   }
 }
 
@@ -214,10 +215,10 @@ export function docToGoals(snap: DocumentSnapshot): Goals {
   const d = snap.data() ?? {}
   return {
     primaryGoal: d.daily_task_target ?? 3,
-    extraGoals:  d.extra_goals ?? [],
-    updatedAt:   d.updated_at
-                   ? tsToIso(d.updated_at)
-                   : new Date().toISOString(),
+    extraGoals: d.extra_goals ?? [],
+    updatedAt: d.updated_at
+      ? tsToIso(d.updated_at)
+      : new Date().toISOString(),
   }
 }
 
@@ -227,12 +228,12 @@ export function docToGoals(snap: DocumentSnapshot): Goals {
  */
 export function goalsToDoc(goals: Goals, userId: string): Record<string, unknown> {
   return {
-    user_id:           userId,
+    user_id: userId,
     daily_task_target: goals.primaryGoal,
-    extra_goals:       goals.extraGoals ?? [],
-    updated_at:        goals.updatedAt
-                         ? Timestamp.fromDate(new Date(goals.updatedAt))
-                         : Timestamp.now(),
+    extra_goals: goals.extraGoals ?? [],
+    updated_at: goals.updatedAt
+      ? Timestamp.fromDate(new Date(goals.updatedAt))
+      : Timestamp.now(),
   }
 }
 
@@ -255,15 +256,15 @@ export interface Template {
 export function docToTemplate(snap: DocumentSnapshot): Template {
   const d = snap.data() ?? {}
   return {
-    id:                   snap.id,
-    name:                 d.name ?? '',
-    title:                d.title ?? '',
-    description:          d.description ?? '',
-    duration:             d.duration ?? 30,
-    topic:                d.topic ?? 'Personal',
-    priority:             d.priority ?? null,
-    subtasks:             d.subtasks ?? [],
-    recurrence:           d.recurrence ?? 'none',
+    id: snap.id,
+    name: d.name ?? '',
+    title: d.title ?? '',
+    description: d.description ?? '',
+    duration: d.duration ?? 30,
+    topic: d.topic ?? 'Personal',
+    priority: d.priority ?? null,
+    subtasks: d.subtasks ?? [],
+    recurrence: d.recurrence ?? 'none',
     customRecurrenceDays: d.custom_recurrence_days ?? null,
   }
 }
@@ -274,15 +275,15 @@ export function docToTemplate(snap: DocumentSnapshot): Template {
  */
 export function templateToDoc(template: Template, userId: string): Record<string, unknown> {
   return {
-    user_id:               userId,
-    name:                  template.name,
-    title:                 template.title,
-    description:           template.description ?? '',
-    duration:              template.duration ?? 30,
-    topic:                 template.topic ?? 'Personal',
-    priority:              template.priority ?? null,
-    subtasks:              template.subtasks ?? [],
-    recurrence:            template.recurrence ?? 'none',
+    user_id: userId,
+    name: template.name,
+    title: template.title,
+    description: template.description ?? '',
+    duration: template.duration ?? 30,
+    topic: template.topic ?? 'Personal',
+    priority: template.priority ?? null,
+    subtasks: template.subtasks ?? [],
+    recurrence: template.recurrence ?? 'none',
     custom_recurrence_days: template.customRecurrenceDays ?? null,
   }
 }
