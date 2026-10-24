@@ -69,6 +69,13 @@ vi.mock('expo-router', async () => {
   return m
 })
 
+// ── react-native-safe-area-context ──────────────────────────────────────────
+
+vi.mock('react-native-safe-area-context', async () => {
+  const m = await import('./mocks/safe-area-context')
+  return m
+})
+
 // ── animation / gesture / native graphics ───────────────────────────────────
 
 vi.mock('react-native-reanimated', async () => {
